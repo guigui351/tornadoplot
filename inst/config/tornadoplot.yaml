@@ -1,0 +1,22 @@
+env: safetyGraphics
+label: AE Tornado Plot Module
+type: module
+package: tornadoplot
+export: false
+order: 1
+domain:
+  - aes
+  - dm
+workflow:
+  ui: app_ui
+  server: app_server
+functions:
+  - app_server
+  - app_ui
+  - mod_tornado_server
+  - mod_tornado_ui
+  - run_app
+  - init_tornado
+  - tornadoplot
+links:
+  tornadoplot: https://github.com/SafetyGraphics/volcanoPlot

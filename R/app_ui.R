@@ -3,14 +3,20 @@
 #' @param request Internal parameter for `{shiny}`.
 #'     DO NOT REMOVE.
 #' @import shiny
-#' @noRd
+#' @importFrom magrittr "%>%"
+#' @import ggplot2
+#' @import dplyr
+#' @import stringr
+#' @export
+
 app_ui <- function(request) {
   tagList(
     # Leave this function for adding external resources
     golem_add_external_resources(),
     # Your application UI logic
     fluidPage(
-      h1("tornadoplot")
+      h1("tornadoplot"),
+      mod_tornado_ui("tornado_1")
     )
   )
 }
