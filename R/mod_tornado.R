@@ -40,7 +40,7 @@ mod_tornado_server <- function(id){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
-    mapping <- golem::get_golem_options("mapping")
+    mapping <- golem::get_golem_options("mapping") # mapping contains the params object, either defined by the user / or by the safetyGraphics app (see run_app.R)
 
     param_in <- reactive(
       init_tornado(data = mapping$data, settings = mapping$settings)

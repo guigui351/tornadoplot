@@ -15,26 +15,54 @@ one half of or a complete tornado.
 
 ## Installation
 
-You can install the development version of tornadoPlot like so:
+You can install the development version of tornadoplot like so:
 
 ``` r
-devtools::install_github('safetyGraphics/tornadoPlot', ref="main")
+devtools::install_github('guigui351/tornadoplot', ref="main")
+```
+
+and run it as follow:
+
+``` r
+library(torndadoplot)
+library(dplyr)
+
+# Keep only two treatments for testing purposes
+sdtm_dm <- safetyData:: sdtm_dm %>% filter (ARMCD != "Scrnfail") %>%
+  mutate (ARM=if_else (ARM != "Placebo", "Treatment", "Placebo"))
+
+# settings for tornado plot
+setting <-list(
+  aes=list(id_col="USUBJID", bodsys_col="AEBODSYS", term_col="AEDECOD", severity_col="AESEV", serious_col="AESER"),
+  dm=list(id_col="USUBJID", treatment_col="ARM",  "treatment_values"=list(group1="Placebo", "group2" = "Xanomeline High Dose"))
+)
+
+# params to be loaded for the tornado plot / mandatory except if it runs with SafetyGraphics
+params <- list(data = list(dm = sdtm_dm, aes = safetyData::sdtm_ae), settings = setting)
+
+# standalone tornadoplot / params parameter automatically called by the run_app function
+tornadoplot::run_app()
 ```
 
 Or run in safetyGraphics:
 
 ``` r
-library(torndadoPlot)
+library(torndadoplot)
+library(safetyGraphics)
+library(dplyr)
 
-# Load standard graphics from safetyCharts + Volcano plot
+# Load standard graphics from safetyCharts + Tornado plot
 charts<-c(
     safetyGraphics::makeChartConfig(),
     safetyGraphics::makeChartConfig(packages="torndadoPlot")
 )
 
-# Add default treatment columns
-mapping <- list(dm=list('treatment_values--group1'="Placebo", 'treatment_values--group2'="Xanomeline High Dose"))
+# List of stm data to be used in the app
+sdtm <- list(dm = sdtm_dm, aes = safetyData::sdtm_ae)
 
-#Initialize SafetyGraphics app. 
-safetyGraphics::safetyGraphicsApp(charts=charts, mapping=mapping)
+# Make metadata
+meta_charts <- makeMeta(charts)
+
+# Initialize SafetyGraphics app.
+safetyGraphics::safetyGraphicsApp(domainData = sdtm, charts=charts, meta = meta_charts)
 ```
