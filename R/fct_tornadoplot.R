@@ -25,25 +25,55 @@
 #'
 #'@export
 
-tornadoplot <- function(data, settings){
+tornadoplot <- function(data, settings, groupvar = "None"){
 
   #########################################
   #   Prep data
   #########################################
 
+  data <- data %>%
+    filter(group_col == {{ groupvar }})
+
+  unique_grp <- data %>% dplyr::ungroup() %>% dplyr::distinct(group_val) %>% dplyr::pull()
+
+  if (length(unique_grp)-1 %in% c(0,1)) {
+    grouping_col_trt <- c("#D0F1BF")
+    grouping_col_plb <- c("#cbc0d3")
+    legend_col <- c("grey80")
+  }
+
+  if (length(unique_grp) - 1 == 2) {
+    grouping_col_trt <- c("#D0F1BF", "#97C684")
+    grouping_col_plb <- c("#cbc0d3", "#8e9aaf")
+    legend_col <- c("grey55", "grey80")
+  }
+
+  if (length(unique_grp) - 1 == 3) {
+    grouping_col_trt <- c("#D0F1BF", "#97C684", "#497135")
+    grouping_col_plb <- c("#cbc0d3", "#8e9aaf", "#444E5F")
+    legend_col <- c("grey30", "grey55", "grey80")
+  }
+
+  if (length(unique_grp) > 4) {
+    "Only 3 colors has been defined, update the app"
+  }
+
+  data_out <<- data
+  grouping_col_trt_out <<- grouping_col_trt
+
   treatment_plot <-
     # Order plot by descending frequency of total percentage (placebo + treatment combined)
     ggplot2::ggplot(
-      data = data %>% dplyr::filter(severity_col != "Total"),
+      data = data %>% dplyr::filter(group_val != "Total"),
       ggplot2::aes(forcats::fct_reorder(term_col, total_perc))
     ) +
 
     # Create barplot, fill the bar AE severity frequency
-    ggplot2::geom_col(ggplot2::aes(y = treatment_perc, fill = severity_col)) +
+    ggplot2::geom_col(ggplot2::aes(y = treatment_perc, fill = group_val)) +
 
     # Create a line to show the difference between Placebo and Treatment frequencies
     ggplot2::geom_segment(
-      data = data %>% dplyr::filter(severity_col == "Total"),
+      data = data %>% dplyr::filter(group_val == "Total"),
       ggplot2::aes(xend = after_stat(x), y = 0, yend = diff_pos),
       col = "#497135",
       arrow = arrow(angle = 20, length = unit(1, "mm"))
@@ -51,7 +81,7 @@ tornadoplot <- function(data, settings){
 
     # Add PT text information near the bars
     ggplot2::geom_text(
-      data = data %>% dplyr::filter(severity_col == "Total"),
+      data = data %>% dplyr::filter(group_val == "Total"),
       ggplot2::aes(y = treatment_perc, label = term_col),
       hjust = 0,
       nudge_y = 2,
@@ -63,14 +93,14 @@ tornadoplot <- function(data, settings){
     ggplot2::scale_y_continuous("Percentage (%)", expand = c(0, 0), position = "right", breaks = seq(0, 100, 10), labels = abs) +
 
     # Use custom colors/fills for AE severity
-    ggplot2::scale_fill_manual(values = c("#D0F1BF", "#97C684", "#497135")) +
-    ggplot2::scale_color_manual(values = c("#D0F1BF", "#97C684", "#497135")) +
+    ggplot2::scale_fill_manual(values = grouping_col_trt) +
+    ggplot2::scale_color_manual(values = grouping_col_trt) +
 
     # Flip cartesian coordinates so that horizontal becomes vertical, and vertical, horizontal
     ggplot2::coord_flip(clip = "off", ylim = c(0, 100)) +
 
     # Change legend keys (colors) in order to have a grey scale instead of AE severity colors chosen above
-    ggplot2::guides(fill = guide_legend("AE Severity:", reverse = TRUE, byrow = TRUE, override.aes = list(fill = c("grey30", "grey55", "grey80")))) +
+    ggplot2::guides(fill = guide_legend("AE Grouping:", reverse = TRUE, byrow = TRUE, override.aes = list(fill = legend_col))) +
 
     # Set void theme
     ggplot2::theme_void(base_family = "sans") +
@@ -114,24 +144,24 @@ tornadoplot <- function(data, settings){
   placebo_plot <-
     # Order plot by descending frequency of total percentage (placebo + treatment combined)
     ggplot2::ggplot(
-      data = data %>% dplyr::filter(severity_col != "Total"),
+      data = data %>% dplyr::filter(group_val != "Total"),
       ggplot2::aes(forcats::fct_reorder(term_col, total_perc))
     ) +
 
     # Create barplot, fill the bar AE severity frequency
-    ggplot2::geom_col(ggplot2::aes(y = -placebo_perc, fill = severity_col)) +
+    ggplot2::geom_col(ggplot2::aes(y = -placebo_perc, fill = group_val)) +
 
     # Create a line to show the difference between Placebo and Treatment frequencies
     ggplot2::geom_segment(
-      data = data %>% dplyr::filter(severity_col == "Total"),
+      data = data %>% dplyr::filter(group_val == "Total"),
       ggplot2::aes(xend = after_stat(x), y = 0, yend = diff_neg),
-      col = "#444E5F", # "#8e9aaf",
+      col = "#444E5F",
       arrow = arrow(angle = 20, length = unit(1, "mm"))
     ) +
 
     # Add PT text information near the bars
     ggplot2::geom_text(
-      data = data %>% dplyr::filter(severity_col == "Total"),
+      data = data %>% dplyr::filter(group_val == "Total"),
       ggplot2::aes(y = -placebo_perc, label = term_col),
       hjust = 1,
       nudge_y = -2,
@@ -143,8 +173,8 @@ tornadoplot <- function(data, settings){
     ggplot2::scale_y_continuous("Percentage (%)", expand = c(0, 0), position = "right", breaks = seq(-100, 0, 10), labels = abs) +
 
     # Use custom colors/fills for AE severity
-    ggplot2::scale_fill_manual(values = c("#cbc0d3", "#8e9aaf", "#444E5F")) +
-    ggplot2::scale_color_manual(values = c("#cbc0d3", "#8e9aaf", "#444E5F")) +
+    ggplot2::scale_fill_manual(values = grouping_col_plb) +
+    ggplot2::scale_color_manual(values = grouping_col_plb) +
 
     # Flip cartesian coordinates so that horizontal becomes vertical, and vertical, horizontal
     ggplot2::coord_flip(clip = "off", ylim = c(-100, -0)) +

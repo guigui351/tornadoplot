@@ -33,6 +33,7 @@ init_tornado <- function(data, settings=NULL) {
   ae_bodsys_sym <- rlang::sym(settings$aes$bodsys_col)
   ae_decod_sym <- rlang::sym(settings$aes$term_col)
   ae_severity_sym <- rlang::sym(settings$aes$severity_col)
+  ae_serious_sym <- rlang::sym(settings$aes$serious_col)
 
   aes_arm <- data$aes %>%
     dplyr::left_join(
@@ -41,20 +42,20 @@ init_tornado <- function(data, settings=NULL) {
     )
 
   # get treatments
-  #if(is.null(settings$dm[['treatment_values--group1']])){settings$dm[['treatment_values--group1']] <- "Placebo"}
-  #if(is.null(settings$dm[['treatment_values--group2']])){settings$dm[['treatment_values--group2']] <- "Treatment"}
+  if(is.null(settings$dm[['treatment_values--group1']])){settings$dm[['treatment_values--group1']] <- "Placebo"}
+  if(is.null(settings$dm[['treatment_values--group2']])){settings$dm[['treatment_values--group2']] <- "Treatment"}
 
-  #treatments <- c(
-  #  settings$dm[['treatment_values--group1']],
-  #  settings$dm[['treatment_values--group2']]
-  #)
+  treatments <- c(
+    settings$dm[['treatment_values--group1']],
+    settings$dm[['treatment_values--group2']]
+  )
 
   # TODO check that the treatments exists in the data
 
-  #if (length(treatments) < 2) {
-  #  all_treatments <- unique(aes_arm %>% pull(!!dm_treatment_sym))
-  #  treatments <- all_treatments[1:2]
-  #}
+  if (length(treatments) < 2) {
+    all_treatments <- unique(aes_arm %>% pull(!!dm_treatment_sym))
+    treatments <- all_treatments[1:2]
+  }
 
   data_dm <- data$dm %>%
     dplyr::group_by(!!dm_treatment_sym) %>%
@@ -66,21 +67,29 @@ init_tornado <- function(data, settings=NULL) {
     dplyr::mutate(treatment_group = stringr::str_to_sentence(!!dm_treatment_sym),
                   bodsys_col = stringr::str_to_sentence(!!ae_bodsys_sym),
                   term_col = stringr::str_to_sentence(!!ae_decod_sym),
-                  severity_col = factor(stringr::str_to_sentence(!!ae_severity_sym), levels = c("Severe", "Moderate", "Mild", "Total"))) %>%
+                  !!ae_severity_sym := factor(stringr::str_to_sentence(!!ae_severity_sym), levels = c("Severe", "Moderate", "Mild", "Total")),
+                  !!ae_serious_sym := factor(stringr::str_to_sentence(!!ae_serious_sym), levels = c("Y", "N", "Total"),labels = c("Serious", "Not serious", "Total"))) %>%
     dplyr::ungroup() %>%
-    dplyr::select(!!dm_id_sym, treatment_group, bign, bodsys_col, term_col, severity_col)
+    dplyr::select(!!dm_id_sym, treatment_group, bign, bodsys_col, term_col, !!ae_severity_sym, !!ae_serious_sym)
+
+  data_aeee <<- data_ae
 
   # frequency py PT and AE severity, as well as difference of frequency between both treatment arms
   data_ae1 <- data_ae %>%
+    dplyr::mutate(None = factor("All")) %>%
     # Create Total severity rows
-    dplyr::bind_rows(data_ae %>% mutate(severity_col = "Total")) %>%
+    dplyr::bind_rows(data_ae %>% mutate(None = "Total", !!ae_severity_sym := "Total", !!ae_serious_sym := "Total")) %>%
+    tidyr::pivot_longer(cols = c(None, !!ae_severity_sym, !!ae_serious_sym), #pivot longer on flag data
+                        names_to = "group_col",
+                        values_to = "group_val") %>%
+    dplyr::filter(!is.na(group_val)) %>%
     # Calculate frequencies usinf add_count function
-    dplyr::add_count(bign, treatment_group, term_col, severity_col, sort = TRUE) %>%
-    dplyr::distinct(bign, treatment_group, term_col, severity_col, n) %>%
-    dplyr::arrange(bign, treatment_group, term_col, severity_col, n) %>%
+    dplyr::add_count(bign, treatment_group, term_col, group_col, group_val, sort = TRUE) %>%
+    dplyr::distinct(bign, treatment_group, term_col, group_col, group_val, n) %>%
+    dplyr::arrange(bign, treatment_group, term_col, group_col, group_val, n) %>%
     # Create a variable 'tokeep' to keep only AEs with at least 3 occurences within both treatment arms
-    dplyr::mutate(tokeep = if_else(severity_col == "Total" & n > 5, 1, NA_real_)) %>%
-    dplyr::group_by(term_col) %>%
+    dplyr::mutate(tokeep = if_else(group_val == "Total" & n > 5, 1, NA_real_)) %>%
+    dplyr::group_by(term_col, group_col) %>%
     # Fill 'tokeep' created above within each AE decod
     tidyr::fill(tokeep, .direction = "downup") %>%
     dplyr::filter(tokeep == 1) %>%
@@ -90,7 +99,7 @@ init_tornado <- function(data, settings=NULL) {
                   treatment_group = dplyr::if_else(grepl("PLA", toupper(treatment_group)), "placebo", "treatment")) %>%
     # Pivot dataframe, to have a placebo and a treatment column
     tidyr::pivot_wider(
-      id_cols = c(term_col, severity_col),
+      id_cols = c(term_col, group_col, group_val),
       names_from = treatment_group,
       names_glue = "{treatment_group}_{.value}",
       values_from = perc,
@@ -98,11 +107,13 @@ init_tornado <- function(data, settings=NULL) {
     ) %>%
     # Create difference of frequency
     dplyr::mutate(placebo_perc_minus = -placebo_perc,
-                  total_perc = dplyr::if_else(severity_col == "Total", placebo_perc + treatment_perc, NA_real_),
+                  total_perc = dplyr::if_else(group_val == "Total", placebo_perc + treatment_perc, NA_real_),
                   diff = treatment_perc - placebo_perc,
                   diff_pos = dplyr::if_else(diff > 0, diff, NA_real_),
                   diff_neg = dplyr::if_else(diff < 0, diff, NA_real_)) %>%
     tidyr::fill(total_perc, .direction = "downup")
+
+  data_ae2 <<- data_ae1
 
   #settings <- c(settings$aes, settings$dm)
   params <-

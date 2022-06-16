@@ -54,8 +54,8 @@ mod_tornado_server <- function(id){
         'groupvar',
         choices = c(
           'None',
-          param_in()$settings$aes$severity_col,
-          param_in()$settings$aes$serious_col
+          "Severity" = param_in()$settings$aes$severity_col,
+          "Seriousness" = param_in()$settings$aes$serious_col
         ),
         selected = 'None'
       )
@@ -65,7 +65,8 @@ mod_tornado_server <- function(id){
     #draw the chart
     output$tornadoExplorer <- renderPlot({
         tornadoplot(param_in()$data,
-                    param_in()$settings)
+                    param_in()$settings,
+                    input$groupvar)
     }, width = 1100, height = 800, res = 80)
 
   })
