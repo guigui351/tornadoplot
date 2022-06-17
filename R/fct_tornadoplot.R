@@ -25,14 +25,20 @@
 #'
 #'@export
 
-tornadoplot <- function(data, settings, groupvar = "None"){
+tornadoplot <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
 
   #########################################
   #   Prep data
   #########################################
 
+  if(!is.null(groupvar)){
   data <- data %>%
     filter(group_col == {{ groupvar }})
+  }
+  else {
+    data <- data %>%
+    filter(group_col == "None")
+    }
 
   unique_grp <- data %>% dplyr::ungroup() %>% dplyr::distinct(group_val) %>% dplyr::pull()
 
@@ -41,21 +47,18 @@ tornadoplot <- function(data, settings, groupvar = "None"){
     grouping_col_plb <- c("#cbc0d3")
     legend_col <- c("grey80")
   }
-
   if (length(unique_grp) - 1 == 2) {
     grouping_col_trt <- c("#D0F1BF", "#97C684")
     grouping_col_plb <- c("#cbc0d3", "#8e9aaf")
     legend_col <- c("grey55", "grey80")
   }
-
   if (length(unique_grp) - 1 == 3) {
     grouping_col_trt <- c("#D0F1BF", "#97C684", "#497135")
     grouping_col_plb <- c("#cbc0d3", "#8e9aaf", "#444E5F")
     legend_col <- c("grey30", "grey55", "grey80")
   }
-
-  if (length(unique_grp) > 4) {
-    "Only 3 colors has been defined, update the app"
+  if (length(unique_grp) - 1 > 3) {
+    print( "Only 3 colors has been defined, update the app")
   }
 
   data_out <<- data
@@ -227,22 +230,22 @@ tornadoplot <- function(data, settings, groupvar = "None"){
   # Add subtitle inside the plot
   final1 <- final +
     ggtext::geom_richtext(
-             x = 11, y = -70, hjust = 0,
-             label = "<b style='color:#444E5F'>Placebo</b>",
+             x = 11, y = -80, hjust = 0,
+             label = paste0("<b style='color:#444E5F'>",paste({{ ref_arm }}, collapse = " + ", sep = "\u000A"),"</b>"),
              label.colour = "grey80") +
     ggtext::geom_richtext(
-             x = 4, y = 45, hjust = 0,
-             label = "<b style='color:#497135'>Xanomeline High Dose</b>",
+             x = 4, y = 32, hjust = 0,
+             label = paste0("<b style='color:#497135'>", paste({{ comp_arm }}, collapse  = " + ", sep = "\u000A"), "</b>"),
              label.colour = "grey80") +
     ggtext::geom_textbox(
       inherit.aes = FALSE,
       data = tibble(
         x = 2.8,
         y = -80,
-        label = "The **bars** indicate the frequency of adverse events for <b style='color:#444E5F'>Placebo group</b>
-    and <b style='color:#497135'>Treatment group</b>. Only AEs with at least 1% occurence are presented.<br>
-    The **arrows** show the difference of percentage between both groups. Arrows pointing to the right indicate a positive difference in favor of placebo,
-    while arrows pointing to the left indicate a higher frequency of AEs in placebo group than treatment group."),
+        label = paste0("The **bars** indicate the frequency of adverse events for <b style='color:#444E5F'>",paste({{ ref_arm }}, collapse = " + "),"</b>
+     and <b style='color:#497135'>",paste({{ comp_arm }}, collapse = " + "), " </b>. Only AEs with at least 1% occurence are presented.<br>
+    The **arrows** show the difference of percentage between both groups. Arrows pointing to the right indicate a positive difference in favor of ", paste({{ ref_arm }}, collapse = " + "),
+    " while arrows pointing to the left indicate a higher frequency of AEs in ",paste({{ ref_arm }}, collapse = " + "), " than ", paste({{ comp_arm }}, collapse = " + "),".")),
       aes(
         x = x,
         y = y,
