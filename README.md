@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# tornado - Plot
+# tornado- Plot
 
 <!-- badges: start -->
 <!-- badges: end -->
@@ -12,8 +12,6 @@ and the categories are ordered so that the largest bar appears at the
 top of the chart, the second largest appears second from the top, and so
 on. They are so named because the final chart visually resembles either
 one half of or a complete tornado.
-
-![tornadoplot App screenshot](https://raw.githubusercontent.com/guigui351/tornadoplot/main/inst/app/www/tornado.png?raw=true)
 
 ## Installation
 
@@ -27,16 +25,16 @@ and run it as follow:
 
 ``` r
 library(torndadoplot)
-library(tidyverse)
-library(safetyData)
+library(dplyr)
 
-# Remove screen failures data
-sdtm_dm <- safetyData:: sdtm_dm %>% filter (ARMCD != "Scrnfail") 
+# Keep only two treatments for testing purposes
+sdtm_dm <- safetyData:: sdtm_dm %>% filter (ARMCD != "Scrnfail") %>%
+  mutate (ARM=if_else (ARM != "Placebo", "Treatment", "Placebo"))
 
 # settings for tornado plot
 setting <-list(
   aes=list(id_col="USUBJID", bodsys_col="AEBODSYS", term_col="AEDECOD", severity_col="AESEV", serious_col="AESER"),
-  dm=list(id_col="USUBJID", treatment_col="ARM")
+  dm=list(id_col="USUBJID", treatment_col="ARM",  "treatment_values"=list(group1="Placebo", "group2" = "Xanomeline High Dose"))
 )
 
 # params to be loaded for the tornado plot / mandatory except if it runs with SafetyGraphics
@@ -51,12 +49,12 @@ Or run in safetyGraphics:
 ``` r
 library(torndadoplot)
 library(safetyGraphics)
-library(tidyverse)
+library(dplyr)
 
 # Load standard graphics from safetyCharts + Tornado plot
 charts<-c(
     safetyGraphics::makeChartConfig(),
-    safetyGraphics::makeChartConfig(packages="torndadoplot")
+    safetyGraphics::makeChartConfig(packages="torndadoPlot")
 )
 
 # List of stm data to be used in the app

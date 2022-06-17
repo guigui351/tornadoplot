@@ -8,15 +8,8 @@ domain:
   - aes
   - dm
 workflow:
-  ui: app_ui
-  server: app_server
-functions:
-  - app_server
-  - app_ui
-  - mod_tornado_server
-  - mod_tornado_ui
-  - run_app
-  - init_tornado
-  - tornadoplot
+  init: init_tornado
+  ui: tornado_ui
+  server: tornado_server
 links:
   tornadoplot: https://github.com/SafetyGraphics/volcanoPlot
