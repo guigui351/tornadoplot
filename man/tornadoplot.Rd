@@ -4,7 +4,7 @@
 \alias{tornadoplot}
 \title{Create a tornado plot}
 \usage{
-tornadoplot(data, settings, groupvar = "None", ref_arm, comp_arm)
+tornadoplot(data, settings, groupvar = "None")
 }
 \arguments{
 \item{data}{A dataframe list}
