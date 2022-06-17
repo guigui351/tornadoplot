@@ -13,7 +13,7 @@ top of the chart, the second largest appears second from the top, and so
 on. They are so named because the final chart visually resembles either
 one half of or a complete tornado.
 
-![tornadoplot App screenshot.](https://github.com/guigui351/tornadoplot/blob/main/inst/app/www/tornado.png?raw=true)
+![tornadoplot App screenshot](https://raw.githubusercontent.com/guigui351/tornadoplot/main/inst/app/www/tornado.png?raw=true)
 
 ## Installation
 
