@@ -16,7 +16,8 @@ mod_tornado_ui <- function(id){
       fluid = TRUE,
       sidebarPanel(
         width = 3,
-        style = "font-family: monospace; position: fixed; width: 20%; top: 88px; height: 1200px; overflow-y: auto;",
+        style = "font-family: monospace; position: fixed; width: 20%; top: 88px; height: 800px; overflow-y: auto;",
+        span(h2("Data parameters"), style="color:#045a8d"),
         shinyWidgets::pickerInput(
           ns("ref_arm"),
           "Reference Arm",
@@ -44,11 +45,13 @@ mod_tornado_ui <- function(id){
           multiple = FALSE
         ),
         tags$br(),tags$br(),
+        span(h2("Plot parameters"), style="color:#045a8d"),
         span(h5("Arrange the following inputs to make the plot as per your wiches"), style="color:#045a8d"),
+        span(h6("Width parameter used only for downloadable  version"), style="color:#045a8d"),
         shinyWidgets::chooseSliderSkin("Flat", color = "#112446"),
-        sliderInput(ns("width"), "Plot Width (in)", min = 4, max = 25, value = 13),
-        sliderInput(ns("height"), "Plot Height (in)", min = 4, max = 25, value = 8),
-        sliderInput(ns('plotRes'), "Resolution (dpi)", min=60, max=320, value=110),
+        sliderInput(ns("width"), "Plot Width (in)", min = 9, max = 15, value = 13),
+        sliderInput(ns("height"), "Plot Height (in)", min = 2, max = 20, value = 8),
+        sliderInput(ns('plotRes'), "Resolution (dpi)", min=60, max=320, value=100),
         tags$br(),tags$br(),
         span(h5("\n Once you're satisfied, please enter a filename and an extension and download the plot"), style="color:#045a8d"),
 
@@ -68,11 +71,9 @@ mod_tornado_ui <- function(id){
       ),
       mainPanel(
         width = 9,
-       style = "position: fixed; left: 21%; top: 88px; height: 1200px; overflow-y: auto;",
-       tabsetPanel
-       (tabPanel("Interactive plot", ggiraph::girafeOutput(ns('tornadoExplorer_interact'))),
-        tabPanel("Static Plot", imageOutput(ns("tornadoExplorer")))
-       ))
+       style = "position: fixed; left: 21%; top: 88px; height: 800px; overflow-y: auto;",
+       imageOutput(ns('tornadoExplorer'),  width = "auto")
+       )
     ))
   )
 }
@@ -102,18 +103,21 @@ mod_tornado_server <- function(id){
         selected = trt_grp()[1]
       )
 
-      #ref_arm_selected <- reactive(c(-input$ref_arm))
+    })
 
+    observe({
       # Define choices for Comparison ARM group
       shinyWidgets::updatePickerInput(
         session,
         'comp_arm',
         choices = c(
-          trt_grp()
+          trt_grp()[!(trt_grp() %in% input$ref_arm)]
         ),
-        selected = trt_grp()[-1] #ref_arm_selected()
+        selected = trt_grp()[!(trt_grp() %in% input$ref_arm)] # trt_grp()[-1]
       )
+    })
 
+    observe({
       # Define choices for AE grouping
       shinyWidgets::updatePickerInput(
         session,
@@ -148,39 +152,36 @@ mod_tornado_server <- function(id){
                  input$comp_arm)
      })
 
-    # Render interactive plot with ggiraph
-    # To make the responsive to the change in UI size
-    output$tornadoExplorer_interact <- renderPlot({
-        individualGraph()
-      },  height = height(), width = width(), dpi = plotRes())
-
-
     # Render plot as an image
-    output$tornadoExplorer <- renderImage({
+    observe({
+      output$tornadoExplorer <- renderImage({
+        # A temp file to save the output.
+        outfile <- tempfile(fileext = '.png')
 
-      # A temp file to save the output.
-      outfile <- tempfile(fileext='.png')
+        # Adapt showtext DPI based on resolution chosen by user.
+        #showtext::showtext_opts(dpi = input$plotRes)
 
-      # Adapt showtext DPI based on resolution chosen by user.
-      showtext::showtext_opts(dpi = input$plotRes)
+        # Save png plot in the temp folder
+        ggplot2::ggsave(
+          filename = outfile,
+          plot = individualGraph(),
+          height = height(),
+          width = width(),
+          dpi = plotRes(),
+          units = "in",
+          type = "cairo",
+        )
 
-      # Save png plot in the temp folder
-      ggplot2::ggsave(
-        filename = outfile,
-        plot = individualGraph(),
-        height = height(), width = width(), dpi = plotRes(), units = "in",
-        type = "cairo",
-      )
-
-      # Return a list containing the filename
-      list(src = normalizePath(outfile),
-           width = width,
-           height = height,
-           contentType = 'image/png',
-           alt = "This is alternate text")
-    }, deleteFile = TRUE)
-
-
+        # Return a list containing the filename
+        list(
+          src = normalizePath(outfile),
+          width = width,
+          height = height,
+          contentType = 'image/png',
+          alt = "This is alternate text"
+        )
+      }, deleteFile = TRUE)
+    })
 
     # Download the plot chosen in png or pdf format
     #extrafont::loadfonts(device="pdf")
