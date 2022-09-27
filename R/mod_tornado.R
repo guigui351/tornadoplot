@@ -16,7 +16,7 @@ mod_tornado_ui <- function(id){
       fluid = TRUE,
       sidebarPanel(
         width = 3,
-        style = "font-family: monospace; position: fixed; width: 20%; top: 88px; height: 800px; overflow-y: auto;",
+        style = "font-family: monospace; position: fixed; width: 20%; top: 88px; height: 1000px; overflow-y: auto;",
         span(h2("Data parameters"), style="color:#045a8d"),
         shinyWidgets::pickerInput(
           ns("ref_arm"),
@@ -44,34 +44,45 @@ mod_tornado_ui <- function(id){
           choices = NULL,
           multiple = FALSE
         ),
+        tags$br(),
+        sliderInput(
+          ns('threshold'),
+          label = "AE Threshold:",
+          min = 0, max = 15, value = 5
+        ),
+        span(h5("Specify the frequency of occurrence that an Adverse Event must exceed, within any arm or comparison group, to be reported"), style="color:#045a8d"),
+        tags$br(),
+        shinyWidgets::switchInput(
+          inputId = ns("freqtable"),
+          label = "Switch to frequency table",
+          labelWidth = "290px",
+          width = '360px',
+        ),
         tags$br(),tags$br(),
         span(h2("Plot parameters"), style="color:#045a8d"),
         span(h5("Arrange the following inputs to make the plot as per your wiches"), style="color:#045a8d"),
         span(h6("Width parameter used only for downloadable  version"), style="color:#045a8d"),
         shinyWidgets::chooseSliderSkin("Flat", color = "#112446"),
-        sliderInput(ns("width"), "Plot Width (in)", min = 9, max = 15, value = 13),
-        sliderInput(ns("height"), "Plot Height (in)", min = 2, max = 20, value = 8),
+        sliderInput(ns("width"), "Plot Width (in)", min = 9, max = 15, value = 14),
+        sliderInput(ns("height"), "Plot Height (in)", min = 2, max = 20, value = 10),
         sliderInput(ns('plotRes'), "Resolution (dpi)", min=60, max=320, value=100),
         tags$br(),tags$br(),
         span(h5("\n Once you're satisfied, please enter a filename and an extension and download the plot"), style="color:#045a8d"),
 
         textInput(ns("filename"), "Choose a filename:", value = "myplot"),
-        shinyWidgets::prettyCheckboxGroup(
+        shinyWidgets::radioGroupButtons(
           inputId = ns("filetype"),
           label = "Select the file type!",
-          choices = list("png", "pdf"),
+          choices = c(`<i class="fa fa-file-pdf-o" aria-hidden="true"></i>` = "pdf", `<i class="fa fa-file-image-o" aria-hidden="true"></i>` = "png"),
           selected = c("png"),
-          shape = "round",
-          status = "info",
-          fill = TRUE,
-          inline = TRUE
+          justified = TRUE
         ),
         downloadButton(ns("download"), "Download Selected Plot"),
         span(h6("Increase DPI for better plot resolution"), style="color:#045a8d"),
       ),
       mainPanel(
         width = 9,
-       style = "position: fixed; left: 21%; top: 88px; height: 800px; overflow-y: auto;",
+       style = "position: fixed; left: 21%; top: 88px; height: 1000px; overflow-y: auto;",
        imageOutput(ns('tornadoExplorer'),  width = "auto")
        )
     ))
@@ -105,7 +116,7 @@ mod_tornado_server <- function(id){
 
     })
 
-    observe({
+    observeEvent(input$ref_arm, {
       # Define choices for Comparison ARM group
       shinyWidgets::updatePickerInput(
         session,
@@ -113,9 +124,9 @@ mod_tornado_server <- function(id){
         choices = c(
           trt_grp()[!(trt_grp() %in% input$ref_arm)]
         ),
-        selected = trt_grp()[!(trt_grp() %in% input$ref_arm)] # trt_grp()[-1]
+        selected = trt_grp()[!(trt_grp() %in% input$ref_arm)]
       )
-    })
+    }, ignoreInit = TRUE)
 
     observe({
       # Define choices for AE grouping
@@ -142,24 +153,42 @@ mod_tornado_server <- function(id){
       req(input$ref_arm)
       req(input$comp_arm)
 
-     params_in <- reactive(init_tornado(mapping$data, mapping$settings, ref_arm = input$ref_arm, comp_arm = input$comp_arm))
+      params_in <-
+        reactive(
+          init_tornado(
+            mapping$data,
+            mapping$settings,
+            ref_arm = input$ref_arm,
+            comp_arm = input$comp_arm,
+            threshold = input$threshold
+          )
+        )
 
-     # Create main plot
-     tornadoplot(params_in()$data,
-                 params_in()$settings,
-                 input$groupvar,
-                 input$ref_arm,
-                 input$comp_arm)
-     })
+      if (input$freqtable) {
+        # Create main plot
+        tornadoplot_wtable(
+          params_in()$data,
+          params_in()$settings,
+          input$groupvar,
+          input$ref_arm,
+          input$comp_arm
+        )
+      } else {
+        tornadoplot(
+          params_in()$data,
+          params_in()$settings,
+          input$groupvar,
+          input$ref_arm,
+          input$comp_arm
+        )
+      }
 
+    })
     # Render plot as an image
     observe({
       output$tornadoExplorer <- renderImage({
         # A temp file to save the output.
         outfile <- tempfile(fileext = '.png')
-
-        # Adapt showtext DPI based on resolution chosen by user.
-        #showtext::showtext_opts(dpi = input$plotRes)
 
         # Save png plot in the temp folder
         ggplot2::ggsave(

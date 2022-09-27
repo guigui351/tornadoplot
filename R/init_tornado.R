@@ -15,7 +15,7 @@
 #' @importFrom magrittr "%>%"
 #' @export
 
-init_tornado <- function(data, settings, ref_arm= "Treatment", comp_arm = "Placebo") {
+init_tornado <- function(data, settings, ref_arm= "Treatment", comp_arm = "Placebo", threshold = 1) {
 
   # Print treatment group enter by users to the console
   print(comp_arm)
@@ -107,7 +107,7 @@ init_tornado <- function(data, settings, ref_arm= "Treatment", comp_arm = "Place
     dplyr::distinct(bign, treatment_group, term_col, group_col, group_val, n) %>%
     dplyr::arrange(bign, treatment_group, term_col, group_col, group_val, n) %>%
     # Create a variable 'tokeep' to keep only AEs with at least 3 occurences within both treatment arms
-    dplyr::mutate(tokeep = dplyr::if_else(group_val == "Total" & n > 5, 1, NA_real_)) %>%
+    dplyr::mutate(tokeep = dplyr::if_else(group_val == "Total" & round(n/bign*100, 2) > {{ threshold }}, 1, NA_real_)) %>%
     dplyr::group_by(term_col, group_col) %>%
     # Fill 'tokeep' created above within each AE decod
     tidyr::fill(tokeep, .direction = "downup") %>%
@@ -121,7 +121,7 @@ init_tornado <- function(data, settings, ref_arm= "Treatment", comp_arm = "Place
       id_cols = c(term_col, group_col, group_val),
       names_from = treatment_group,
       names_glue = "{treatment_group}_{.value}",
-      values_from = perc,
+      values_from = c(perc, n),
       values_fill = 0
     ) %>%
     # Create difference of frequency
@@ -133,6 +133,7 @@ init_tornado <- function(data, settings, ref_arm= "Treatment", comp_arm = "Place
     tidyr::fill(total_perc, .direction = "downup")
 
 
+  data_out <<- data_ae1
   #settings <- c(settings$aes, settings$dm)
   params <-
     list(

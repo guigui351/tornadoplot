@@ -4,7 +4,13 @@
 \alias{init_tornado}
 \title{Initialize Settings for Adverse Event Tornado plot widget}
 \usage{
-init_tornado(data, settings, ref_arm = "Treatment", comp_arm = "Placebo")
+init_tornado(
+  data,
+  settings,
+  ref_arm = "Treatment",
+  comp_arm = "Placebo",
+  threshold = 1
+)
 }
 \arguments{
 \item{data}{named list of data}

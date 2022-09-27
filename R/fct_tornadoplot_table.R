@@ -25,20 +25,20 @@
 #'
 #'@export
 
-tornadoplot <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
+tornadoplot_wtable <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
 
   #########################################
   #   Prep data
   #########################################
 
   if(!is.null(groupvar)){
-  data <- data %>%
-    filter(group_col == {{ groupvar }})
+    data <- data %>%
+      filter(group_col == {{ groupvar }})
   }
   else {
     data <- data %>%
-    filter(group_col == "None")
-    }
+      filter(group_col == "None")
+  }
 
   unique_grp <- data %>% dplyr::ungroup() %>% dplyr::distinct(group_val) %>% dplyr::pull()
 
@@ -77,16 +77,6 @@ tornadoplot <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
       ggplot2::aes(xend = after_stat(x), y = 0, yend = diff_pos),
       col = "#497135",
       arrow = arrow(angle = 20, length = unit(1, "mm"))
-    ) +
-
-    # Add PT text information near the bars
-    ggplot2::geom_text(
-      data = data %>% dplyr::filter(group_val == "Total"),
-      ggplot2::aes(y = treatment_perc, label = term_col),
-      hjust = 0,
-      nudge_y = 2,
-      col = "grey4",
-      size = 2
     ) +
 
     # Y scale formatting
@@ -211,51 +201,115 @@ tornadoplot <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
       panel.spacing = margin(10, 0, 0, 0)
     )
 
+  ## Present n(%) of AEs per treatment group
+  freqtable <- data_out %>%
+    dplyr::filter(group_val == "Total") %>%
+    dplyr::ungroup() %>%
+    dplyr::select(term_col, starts_with("placebo") & !ends_with("minus"), starts_with("treatment")) %>%
+    tidyr::pivot_longer(-term_col,
+                 names_to = c("trt", ".value"),
+                 names_sep="_" ) %>%
+    dplyr::mutate(trtn = dplyr::if_else(trt == "placebo", 1, 2))
+
+  aetable <-
+    ggplot2::ggplot(data = freqtable, ggplot2::aes(x = trtn, y = forcats::fct_reorder(term_col,perc))) +
+
+    # Draw bubble point, size depends of  number of events by trt grp
+    ggplot2::geom_point(ggplot2::aes(color = trt, size = n), alpha = 0.66) +
+
+    # Add text to draw number of events for each PT and related %
+    ggplot2::geom_text(
+      ggplot2::aes(x = trtn+0.8, label = glue::glue("{n} ({perc}%)")),
+      stat = "unique",
+      family = "Arial",
+      fontface = "bold",
+      size = 2.5,
+      hjust = 1
+    ) +
+
+    # include plot points overlapping Y/X axis (if any)
+    ggplot2::coord_cartesian(expand = TRUE, clip = "off", xlim = c(0.9, 3)) +
+
+    # Customize color gradient legend
+    ggplot2::scale_color_manual(
+      label = c(paste({{ ref_arm }}, collapse = " + ", sep = "\n"), paste({{ comp_arm }}, collapse = " + ", sep = "<br>")),
+      values = c("#8e9aaf", "#97C684"),
+      name = NULL
+    ) +
+
+    # Customize size legend
+    ggplot2::scale_size(range = c(0.1, 5), guide = "none") +
+    ggplot2::guides(color = guide_legend(title = NULL, label.position = "bottom",
+                                        override.aes = list(shape = 18, size = 8, color = c("#8e9aaf", "#97C684")))
+    ) +
+
+    # remove x axis title
+    ggplot2::labs(x = NULL) +
+
+    ggplot2::theme_light() +
+
+    # Customize theme
+    ggplot2::theme(
+
+      # The default font color when not explicitly specified
+      text = element_text(color = "grey24"),
+
+      # Use a light color for the background of the plot and the panel.
+      plot.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      panel.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+
+      # remove grid elements and border
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x  = element_blank(),
+      panel.border = element_blank(),
+      panel.grid.major.y = element_blank(),
+
+      # remove ticks and title elements on Y axis
+      axis.ticks.y = element_blank(),
+      axis.ticks.x = element_blank(),
+      axis.text.y = element_text(family = "Arial", size = 8),
+      axis.title.y = element_blank(),
+      axis.text.x = element_blank(),
+
+      # change legend appearance
+      legend.position = "top",
+      legend.text = ggtext::element_markdown(family = "Arial", size = 8),
+      legend.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      legend.key = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      legend.spacing.x = unit(1.5, 'cm'),
+      legend.margin = margin(0,90,-10,20),
+
+      # Plot margins
+      plot.margin = margin(10, 15, 0, 0)
+    )
+
   # Combine both ggplot elements into the same graphic
   final <- placebo_plot + treatment_plot + patchwork::plot_layout(widths = c(1,1)) +
+    ggtext::geom_richtext(
+      x = 11, y = -80, hjust = 0,
+      label = paste0("<b style='color:#444E5F'>",paste({{ ref_arm }}, collapse = " + ", sep = "\u000A"),"</b>"),
+      label.colour = "grey80", size = 2.7) +
+    ggtext::geom_richtext(
+      x = 4, y = 32, hjust = 0,
+      label = paste0("<b style='color:#497135'>", paste({{ comp_arm }}, collapse  = " + ", sep = "\u000A"), "</b>"),
+      label.colour = "grey80", size = 2.7)
+
+  # Add caption inside the plot
+  barplot <- aetable + final + patchwork::plot_layout(widths = c(0.25,0.75)) +
     patchwork::plot_annotation(
-      caption = "(CDISC Pilot data)",
+      caption =
+paste0("The **bars** indicate the frequency of adverse events for <b style='color:#444E5F'>",paste({{ ref_arm }}, collapse = " + "),"</b>
+and <b style='color:#497135'>",paste({{ comp_arm }}, collapse = " + "), " </b>. Only AEs with at least 1% occurence are presented.<br>
+The **arrows** show the difference of percentage between both groups. Arrows pointing to the right indicate a positive difference in favor of ", paste({{ ref_arm }}, collapse = " + "),
+"while arrows pointing to the left indicate a higher frequency of AEs<br> in ", paste({{ ref_arm }}, collapse = " + "), " than ", paste({{ comp_arm }}, collapse = " + "),".\n\n<i>(CDISC Pilot data)</i>"),
       theme = ggplot2::theme(panel.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
-                    plot.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
-                    plot.caption = element_text(hjust = 0.005, size = 8, face= "italic"),
-                    plot.caption.position =  "plot",
-                    plot.margin = margin(20, 25, 20, 25))
+                             plot.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+                             plot.caption.position =  "plot",
+                             plot.margin = margin(10, 25, 10, 25),
+                             plot.caption = element_markdown(hjust = 0.01, size = 8, color = "grey38"))
     )
 
-
-
-  # Add subtitle inside the plot
-  final1 <- final +
-    ggtext::geom_richtext(
-             x = 11, y = -80, hjust = 0,
-             label = paste0("<b style='color:#444E5F'>",paste({{ ref_arm }}, collapse = " + ", sep = "\u000A"),"</b>"),
-             label.colour = "grey80") +
-    ggtext::geom_richtext(
-             x = 4, y = 32, hjust = 0,
-             label = paste0("<b style='color:#497135'>", paste({{ comp_arm }}, collapse  = " + ", sep = "\u000A"), "</b>"),
-             label.colour = "grey80") +
-    ggtext::geom_textbox(
-      inherit.aes = FALSE,
-      data = tibble(
-        x = 2.8,
-        y = -80,
-        label = paste0("The **bars** indicate the frequency of adverse events for <b style='color:#444E5F'>",paste({{ ref_arm }}, collapse = " + "),"</b>
-     and <b style='color:#497135'>",paste({{ comp_arm }}, collapse = " + "), " </b>. Only AEs with at least 1% occurence are presented.<br>
-    The **arrows** show the difference of percentage between both groups. Arrows pointing to the right indicate a positive difference in favor of ", paste({{ ref_arm }}, collapse = " + "),
-    " while arrows pointing to the left indicate a higher frequency of AEs in ",paste({{ ref_arm }}, collapse = " + "), " than ", paste({{ comp_arm }}, collapse = " + "),".")),
-      aes(
-        x = x,
-        y = y,
-        label = label),
-      hjust = 0, vjust = 0,
-      box.size = 0,
-      color = "grey38",
-      width = 0.42,
-      size = 3,
-      family = "sans",
-      fill = NA
-    )
-
-  return(final1)
+  return(barplot)
 
 }
+
