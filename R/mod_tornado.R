@@ -16,7 +16,50 @@ mod_tornado_ui <- function(id){
       fluid = TRUE,
       sidebarPanel(
         width = 3,
-        style = "font-family: monospace; position: fixed; width: 20%; top: 88px; height: 1000px; overflow-y: auto;",
+        fluidRow(
+          column(2,
+                 shinyWidgets::dropdownButton(
+                   span(h2("Plot parameters & Save"), style="color:#045a8d"),
+                   span(h5("Arrange the following inputs to make the plot as per your wiches"), style="color:#045a8d"),
+                   span(h6("You'll ve to save and download your plot to see the result"), style="color:#045a8d"),
+                   shinyWidgets::chooseSliderSkin("Flat", color = "#112446"),
+                   fluidRow(
+                     column(4, sliderInput(ns("width"), "Plot Width (cm)", min = 14, max = 42, value = 22, step = 4)),
+                     column(4, sliderInput(ns("height"), "Plot Height (cm)", min = 18, max = 40, value = 26, step = 4)),
+                     column(4, sliderInput(ns('plotRes'), "Resolution (dpi)", min=60, max=320, value=  200, step = 10))
+                   ),
+                   tags$br(),
+                   span(h5("\n Once you're satisfied, please enter a filename and an extension and download the plot"), style="color:#045a8d"),
+                   fluidRow(
+                     column(6, textInput(ns("filename"), "Choose a filename:", value = "myplot")),
+                     column(6, shinyWidgets::radioGroupButtons(
+                       inputId = ns("filetype"),
+                       label = "Select the file type!",
+                       choices = c(`<i class="fa fa-file-pdf-o" aria-hidden="true"></i>` = "pdf", `<i class="fa fa-file-image-o" aria-hidden="true"></i>` = "png"),
+                       selected = c("png"),
+                       justified = TRUE
+                     )),
+                   ),
+                   shinyWidgets::downloadBttn(
+                     ns("download"),
+                     label = "Download Plot",
+                     style = "material-circle",
+                     color = "royal",
+                     size = "sm",
+                     block = FALSE,
+                     no_outline = TRUE,
+                     icon = shiny::icon("download")
+                   ),
+                   span(h6("Increase DPI for better plot resolution"), style="color:#045a8d"),
+                   circle = TRUE, status = "danger", icon = icon("cloud-arrow-down", class="thin"), width = "600px",
+                   tooltip = shinyWidgets::tooltipOptions(title = "Save it !")
+                 )),
+          column(
+            9, align = "left",
+            shinyWidgets::chooseSliderSkin("Flat", color = "#112446"),
+            sliderInput(ns("height_window"), label = "Plot height (px) in the windows", min = 600, max = 1500, step = 100, value = 900)
+          )
+        ),
         span(h2("Data parameters"), style="color:#045a8d"),
         shinyWidgets::pickerInput(
           ns("ref_arm"),
@@ -47,7 +90,7 @@ mod_tornado_ui <- function(id){
         tags$br(),
         sliderInput(
           ns('threshold'),
-          label = "AE Threshold:",
+          label = "AE Threshold (%):",
           min = 0, max = 15, value = 5
         ),
         span(h5("Specify the frequency of occurrence that an Adverse Event must exceed, within any arm or comparison group, to be reported"), style="color:#045a8d"),
@@ -58,32 +101,13 @@ mod_tornado_ui <- function(id){
           labelWidth = "290px",
           width = '360px',
         ),
-        tags$br(),tags$br(),
-        span(h2("Plot parameters"), style="color:#045a8d"),
-        span(h5("Arrange the following inputs to make the plot as per your wiches"), style="color:#045a8d"),
-        span(h6("Width parameter used only for downloadable  version"), style="color:#045a8d"),
-        shinyWidgets::chooseSliderSkin("Flat", color = "#112446"),
-        sliderInput(ns("width"), "Plot Width (in)", min = 9, max = 15, value = 14),
-        sliderInput(ns("height"), "Plot Height (in)", min = 2, max = 20, value = 10),
-        sliderInput(ns('plotRes'), "Resolution (dpi)", min=60, max=320, value=100),
-        tags$br(),tags$br(),
-        span(h5("\n Once you're satisfied, please enter a filename and an extension and download the plot"), style="color:#045a8d"),
-
-        textInput(ns("filename"), "Choose a filename:", value = "myplot"),
-        shinyWidgets::radioGroupButtons(
-          inputId = ns("filetype"),
-          label = "Select the file type!",
-          choices = c(`<i class="fa fa-file-pdf-o" aria-hidden="true"></i>` = "pdf", `<i class="fa fa-file-image-o" aria-hidden="true"></i>` = "png"),
-          selected = c("png"),
-          justified = TRUE
-        ),
-        downloadButton(ns("download"), "Download Selected Plot"),
-        span(h6("Increase DPI for better plot resolution"), style="color:#045a8d"),
+        tags$br()
       ),
       mainPanel(
         width = 9,
-       style = "position: fixed; left: 21%; top: 88px; height: 1000px; overflow-y: auto;",
-       imageOutput(ns('tornadoExplorer'),  width = "auto")
+
+        #style = "position: fixed; left: 21%; top: 88px; height: 1000px; overflow-y: auto;",
+        plotOutput(ns('tornadoExplorer'),  width = "auto", height = "900px")
        )
     ))
   )
@@ -145,6 +169,7 @@ mod_tornado_server <- function(id){
 
     # Make inputs user reactive
     width <- reactive({input$width})
+    height_window <- reactive({input$height_window})
     height <- reactive({input$height})
     plotRes <- reactive({input$plotRes})
 
@@ -184,33 +209,39 @@ mod_tornado_server <- function(id){
       }
 
     })
-    # Render plot as an image
+
     observe({
-      output$tornadoExplorer <- renderImage({
-        # A temp file to save the output.
-        outfile <- tempfile(fileext = '.png')
-
-        # Save png plot in the temp folder
-        ggplot2::ggsave(
-          filename = outfile,
-          plot = individualGraph(),
-          height = height(),
-          width = width(),
-          dpi = plotRes(),
-          units = "in",
-          type = "cairo",
-        )
-
-        # Return a list containing the filename
-        list(
-          src = normalizePath(outfile),
-          width = width,
-          height = height,
-          contentType = 'image/png',
-          alt = "This is alternate text"
-        )
-      }, deleteFile = TRUE)
+         output$tornadoExplorer <- renderPlot({
+           individualGraph()
+         }, res = 110, height = height_window())
     })
+    # Render plot as an image
+    # observe({
+    #   output$tornadoExplorer <- renderImage({
+    #     # A temp file to save the output.
+    #     outfile <- tempfile(fileext = '.png')
+    #
+    #     # Save png plot in the temp folder
+    #     ggplot2::ggsave(
+    #       filename = outfile,
+    #       plot = individualGraph(),
+    #       height = height(),
+    #       width = width(),
+    #       dpi = plotRes(),
+    #       units = "in",
+    #       type = "cairo",
+    #     )
+    #
+    #     # Return a list containing the filename
+    #     list(
+    #       src = normalizePath(outfile),
+    #       width = width,
+    #       height = height,
+    #       contentType = 'image/png',
+    #       alt = "This is alternate text"
+    #     )
+    #   }, deleteFile = TRUE)
+    # })
 
     # Download the plot chosen in png or pdf format
     #extrafont::loadfonts(device="pdf")
@@ -225,7 +256,7 @@ mod_tornado_server <- function(id){
           ggplot2::ggsave(
             filename = file,
             plot = individualGraph(),
-            height = height(), width = width(), dpi = plotRes(), units = "in", # open the png device
+            height = height(), width = width(), dpi = plotRes(), units = "cm", # open the png device
             type = "cairo",
           )
         }
@@ -234,7 +265,7 @@ mod_tornado_server <- function(id){
             filename = file,
             plot = individualGraph(),
             device = cairo_pdf, #grDevices::cairo_pdf(),
-            height = height(), width = width(), dpi = plotRes(), units = "in",) # open the pdf device
+            height = height(), width = width(), dpi = plotRes(), units = "cm",) # open the pdf device
       }
     )
 

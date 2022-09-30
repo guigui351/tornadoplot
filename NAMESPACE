@@ -3,6 +3,7 @@
 export("%>%")
 export(app_server)
 export(app_ui)
+export(init_enrolmap)
 export(init_tornado)
 export(mod_tornado_server)
 export(mod_tornado_ui)
