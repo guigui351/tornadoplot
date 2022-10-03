@@ -24,4 +24,5 @@ app_server <- function(input, output, session) {
   })
 
   mod_tornado_server("tornado_1")
+  mod_enrolmap_server("enrolmap_1")
 }

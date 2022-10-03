@@ -4,13 +4,7 @@
 \alias{init_enrolmap}
 \title{Initialize Settings and Data for Enrollement map widget}
 \usage{
-init_enrolmap(
-  data,
-  settings,
-  ref_arm = "Treatment",
-  comp_arm = "Placebo",
-  threshold = 1
-)
+init_enrolmap(data, settings)
 }
 \arguments{
 \item{data}{named list of data}
@@ -18,12 +12,12 @@ init_enrolmap(
 \item{settings}{named list of settings}
 }
 \value{
-returns list with data and settings used for fct_tornadoplot
+returns list with data and settings used for mod_enrolmap
 }
 \description{
 Initialize Settings and Data for Enrollement map widget
 }
 \examples{
 
-init_tornado(params$data, settings=params$settings, ref_arm= "Treatment", comp_arm = "Placebo")
+init_enrolmap(params$data, settings=params$settings, ref_arm= "Treatment", comp_arm = "Placebo")
 }

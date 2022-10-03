@@ -257,7 +257,7 @@ mod_tornado_server <- function(id){
             filename = file,
             plot = individualGraph(),
             height = height(), width = width(), dpi = plotRes(), units = "cm", # open the png device
-            type = "cairo",
+            type = "cairo"
           )
         }
         else
@@ -265,7 +265,7 @@ mod_tornado_server <- function(id){
             filename = file,
             plot = individualGraph(),
             device = cairo_pdf, #grDevices::cairo_pdf(),
-            height = height(), width = width(), dpi = plotRes(), units = "cm",) # open the pdf device
+            height = height(), width = width(), dpi = plotRes(), units = "cm") # open the pdf device
       }
     )
 

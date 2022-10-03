@@ -34,8 +34,7 @@ devtools::install_github('guigui351/tornadoplot', ref="main")
 and run it as follow:
 
 ```r
-library(torndadoplot)
-library(tidyverse)
+library(dplyr)
 library(safetyData)
 
 # Remove screen failures data
@@ -44,7 +43,7 @@ sdtm_dm <- safetyData:: sdtm_dm %>% filter (ARMCD != "Scrnfail")
 # settings for tornado plot
 setting <-list(
   aes=list(id_col="USUBJID", bodsys_col="AEBODSYS", term_col="AEDECOD", severity_col="AESEV", serious_col="AESER"),
-  dm=list(id_col="USUBJID", treatment_col="ARM")
+  dm=list(id_col="USUBJID", treatment_col="ARM", "treatment_values"=list(group1="Placebo", "group2" = "Xanomeline High Dose"), siteid_col="SITEID", country_col="COUNTRY", ifcdt_col="RFICDTC", rando_col="RFSTDTC")
 )
 
 # params to be loaded for the tornado plot / mandatory except if it runs with SafetyGraphics
@@ -52,29 +51,5 @@ params <- list(data = list(dm = sdtm_dm, aes = safetyData::sdtm_ae), settings = 
 
 # standalone tornadoplot / params parameter automatically called by the run_app function
 tornadoplot::run_app()
-```
-
-Or run in safetyGraphics:
-
-``` r
-library(torndadoplot)
-library(safetyGraphics)
-library(tidyverse)
-
-# Load standard graphics from safetyCharts + Tornado plot
-charts<-c(
-    safetyGraphics::makeChartConfig(),
-    safetyGraphics::makeChartConfig(packages="torndadoplot")
-)
-
-# List of stm data to be used in the app
-sdtm <- list(dm = sdtm_dm, aes = safetyData::sdtm_ae)
-
-# Make metadata
-meta_charts <- makeMeta(charts)
-
-# Initialize SafetyGraphics app.
-safetyGraphics::safetyGraphicsApp(domainData = sdtm, charts=charts, meta = meta_charts)
-
 ```
 

@@ -5,21 +5,15 @@
 #'
 #' @examples
 #'
-#' init_tornado(params$data, settings=params$settings, ref_arm= "Treatment", comp_arm = "Placebo")
-#' @return returns list with data and settings used for fct_tornadoplot
+#' init_enrolmap(params$data, settings=params$settings, ref_arm= "Treatment", comp_arm = "Placebo")
+#' @return returns list with data and settings used for mod_enrolmap
 #'
-#' @import dplyr
-#' @import tidyr
-#' @import ggplot2
-#' @import stringr
+#' @importFrom dplyr mutate filter arrange select group_by summarize if_else slice ungroup left_join right_join
+#' @importFrom lubridate floor_date
 #' @importFrom magrittr "%>%"
 #' @export
 
-init_enrolmap <- function(data, settings, ref_arm= "Treatment", comp_arm = "Placebo", threshold = 1) {
-
-  # Print treatment group enter by users to the console
-  print(comp_arm)
-  print({{ ref_arm}})
+init_enrolmap <- function(data, settings) {
 
   # Define mandatory settings, if user didn't
   if(is.null(settings)){
@@ -38,17 +32,15 @@ init_enrolmap <- function(data, settings, ref_arm= "Treatment", comp_arm = "Plac
 
   # Flag enrolled/randomized participants
   data_enrolled <- data$dm %>%
-    dplyr::mutate(rficdt = dplyr::if_else(is.na(!!dm_ifcdt_sym), as.Date(!!dm_rando_sym), as.Date(!!dm_ifcdt_sym)),
+    dplyr::mutate(rficdt = dplyr::if_else(is.na(!!dm_ifcdt_sym),
+                                          as.Date(!!dm_rando_sym),
+                                          as.Date(!!dm_ifcdt_sym)),
                   randdt = as.Date(!!dm_rando_sym)) %>%
     dplyr::filter(!is.na(rficdt)) %>%
     dplyr::select(!!dm_id_sym, !!dm_country_sym, !!dm_siteid_sym, rficdt, randdt) %>%
     dplyr::mutate(case_enrolled = 1,
-                  case_rando = dplyr::if_else(!is.na(randdt), 1, 0))
-
-  # Use for first tabpanel - number of enrolled/randomized patients at yyyy date
-  current_date = as.Date(Sys.Date(),"%Y-%m-%d")
-  rficdt_date = unique(data_enrolled$rficdt)
-  choice_date = c(rficdt_date, current_date)
+                  case_rando = dplyr::if_else(!is.na(randdt), 1, 0),
+                  country = !!dm_country_sym)
 
   # Sum (and cumsum) of enrolled participants by date
   enrolled_aggregated <- data_enrolled %>%
@@ -62,23 +54,51 @@ init_enrolmap <- function(data, settings, ref_arm= "Treatment", comp_arm = "Plac
     dplyr::summarize(sum_cr = sum(case_rando)) %>%
     dplyr::mutate(cumsum_cr = cumsum(sum_cr))
 
-  # Get treatments reference and comparators
-  if(is.null(settings$dm[['treatment_values--group1']])){settings$dm[['treatment_values--group1']] <-  c({{ ref_arm}})  }
-  if(is.null(settings$dm[['treatment_values--group2']])){settings$dm[['treatment_values--group2']] <-  c({{ comp_arm}})  }
+  # Number of enrolled participants by country
+  enrolled_bycountry <- data_enrolled %>%
+    dplyr::group_by(!!dm_country_sym, month = lubridate::floor_date(rficdt, "month")) %>%
+    dplyr::summarize(sum_country_ce = sum(case_enrolled)) %>%
+    dplyr::mutate(cumsum_country_ce = cumsum(sum_country_ce)) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(bins = cut(cumsum_country_ce, breaks = 10),
+                  bins_quantile = cut(cumsum_country_ce, breaks=quantile(cumsum_country_ce, probs = seq(0, 1, by = 10), na.rm=TRUE), include.lowest = TRUE))
 
-  treatments <- c(
-    settings$dm[['treatment_values--group1']],
-    settings$dm[['treatment_values--group2']]
-  )
+  # Number of enrolled participants by site
+  enrolled_bysiteid <- data_enrolled %>%
+    dplyr::group_by(!!dm_siteid_sym, month = lubridate::floor_date(rficdt, "month")) %>%
+    dplyr::summarize(sum_siteid_ce = sum(case_enrolled)) %>%
+    dplyr::mutate(cumsum_siteid_ce = cumsum(sum_siteid_ce))  %>%
+    dplyr::ungroup()
 
-  if (length(treatments) < 2) {
-    all_treatments <- unique(data_enrolled %>% pull(!!dm_treatment_sym))
-    treatments <- all_treatments[1:2]
-  }
+  # Number of randomized participants by country
+  rando_bycountry <- data_enrolled %>%
+    dplyr::group_by(!!dm_country_sym, month = lubridate::floor_date(rficdt, "month")) %>%
+    dplyr::summarize(sum_country_cr = sum(case_rando)) %>%
+    dplyr::mutate(cumsum_country_cr = cumsum(sum_country_cr))  %>%
+    dplyr::ungroup()
 
+  # Get centroid coordinates of each country
+  countryref <- CoordinateCleaner::countryref
+  country_centroid <- countryref %>%
+    dplyr::filter(is.na(source) & type == "country") %>%
+    dplyr::group_by(name) %>%
+    dplyr::slice(1) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(code = as.character(iso3)) %>%
+    # combine with DM data and country column
+    dplyr::right_join(enrolled_bycountry, by = c("code" = settings$dm$country_col)) %>%
+    dplyr::left_join(rando_bycountry, by = c("code" = settings$dm$country_col, "month" = "month"))
+
+  # return params with new datasets and settings ready to be used in the mod_enrolmap
   params <-
     list(
-      data = list(data_enrolled= data_enrolled, enrolled_aggregated=enrolled_aggregated, rando_aggregated=rando_aggregated),
+      data = list(data_enrolled= data_enrolled,
+                  enrolled_aggregated=enrolled_aggregated,
+                  rando_aggregated=rando_aggregated,
+                  enrolled_bycountry=enrolled_bycountry,
+                  enrolled_bysiteid=enrolled_bysiteid,
+                  rando_bycountry=rando_bycountry,
+                  country_centroid=country_centroid),
       settings = settings
     )
 
@@ -86,7 +106,7 @@ init_enrolmap <- function(data, settings, ref_arm= "Treatment", comp_arm = "Plac
 
 }
 
-mapping <- init_enrolmap(data = list(dm = sdtm_dm), settings = NULL)
+#mapping <- init_enrolmap(data = list(dm = sdtm_dm), settings = NULL)
 
 
 

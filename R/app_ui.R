@@ -48,7 +48,8 @@ tagList(
              tabPanel(
                title = "Enrolment map",
                icon = icon("earth-americas", class = "fa-2x thin"),
-               value = "enrolmap"
+               value = "enrolmap",
+               mod_enrolmap_ui("enrolmap_1")
              ),
              ## Tornado plot page
              tabPanel(
@@ -106,5 +107,12 @@ golem_add_external_resources <- function() {
     tags$link(href='https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500&display=swap', rel='stylesheet'),
     tags$link(href='https://fonts.googleapis.com/css2?family=Bitter&display=swap', rel='stylesheet'),
     tags$link(rel = "stylesheet", type = "text/css", href = "www/css/old_style.css"),
+    tags$script(async = NA, src = "https://www.googletagmanager.com/gtag/js?id=UA-162672430-2"),
+    tags$script(
+      "window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-162672430-2');"
+    )
   )
 }
