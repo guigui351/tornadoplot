@@ -17,11 +17,12 @@
 #' )
 #' tornadoplot(data, settings)
 #'
-#' @import dplyr
-#' @import tidyr
-#' @import ggplot2
-#' @import ggtext
-#' @import patchwork
+#' @importFrom dplyr ungroup distinct pull filter select mutate left_join if_else
+#' @importFrom tidyr pivot_longer
+#' @importFrom ggplot2 ggplot aes geom_col geom_segment geom_point geom_text scale_y_continuous coord_cartesian scale_size scale_fill_manual
+#'  scale_color_manual coord_flip guides theme theme_void labs theme_light arrow unit guide_legend element_text element_line element_rect element_blank after_stat
+#' @importFrom ggtext element_markdown geom_richtext
+#' @importFrom patchwork plot_layout plot_annotation
 #'
 #'@export
 
@@ -74,9 +75,9 @@ tornadoplot_wtable <- function(data, settings, groupvar = "None", ref_arm, comp_
     # Create a line to show the difference between Placebo and Treatment frequencies
     ggplot2::geom_segment(
       data = data %>% dplyr::filter(group_val == "Total"),
-      ggplot2::aes(xend = after_stat(x), y = 0, yend = diff_pos),
+      ggplot2::aes(xend = ggplot2::after_stat(x), y = 0, yend = diff_pos),
       col = "#497135",
-      arrow = arrow(angle = 20, length = unit(1, "mm"))
+      arrow = ggplot2::arrow(angle = 20, length = unit(1, "mm"))
     ) +
 
     # Y scale formatting
@@ -90,7 +91,7 @@ tornadoplot_wtable <- function(data, settings, groupvar = "None", ref_arm, comp_
     ggplot2::coord_flip(clip = "off", ylim = c(0, 100)) +
 
     # Change legend keys (colors) in order to have a grey scale instead of AE severity colors chosen above
-    ggplot2::guides(fill = guide_legend("AE Grouping:", reverse = TRUE, byrow = TRUE, override.aes = list(fill = legend_col))) +
+    ggplot2::guides(fill = ggplot2::guide_legend("AE Grouping:", reverse = TRUE, byrow = TRUE, override.aes = list(fill = legend_col))) +
 
     # Set void theme
     ggplot2::theme_void(base_family = "sans") +
@@ -99,17 +100,17 @@ tornadoplot_wtable <- function(data, settings, groupvar = "None", ref_arm, comp_
     ggplot2::theme(
 
       # The default font color when not explicitly specified
-      text = element_text(color = "grey24"),
+      text = ggplot2::element_text(color = "grey24"),
 
       # Use a light color for the background of the plot and the panel.
-      plot.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
-      panel.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      plot.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      panel.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
 
       # Adjust axis parameters such as size and color.
-      axis.text.x.top = element_text(size = 6, color = "grey24"),
-      axis.ticks.x.top = element_line(size = 0.2, color = "grey24"),
-      axis.ticks.length.x.top = unit(1, "mm"),
-      axis.title.x.top = element_text(hjust=0.965, size = 6, margin = margin(0, 0, 5, 0)),
+      axis.text.x.top = ggplot2::element_text(size = 6, color = "grey24"),
+      axis.ticks.x.top = ggplot2::element_line(size = 0.2, color = "grey24"),
+      axis.ticks.length.x.top = ggplot2::unit(1, "mm"),
+      axis.title.x.top = ggplot2::element_text(hjust=0.965, size = 6, margin = ggplot2::margin(0, 0, 5, 0)),
 
       # remove Y axis elements
       axis.title.y = NULL,
@@ -119,14 +120,14 @@ tornadoplot_wtable <- function(data, settings, groupvar = "None", ref_arm, comp_
       # Customize legend text and position
       legend.position = c(0.77, 0.5),
       legend.direction = "vertical",
-      legend.key.width = unit(1, "cm"),
-      legend.box.spacing = unit(.5, "cm"),
-      legend.spacing.y = unit(.5, "cm"),
-      legend.margin = margin(),
+      legend.key.width = ggplot2::unit(1, "cm"),
+      legend.box.spacing = ggplot2::unit(.5, "cm"),
+      legend.spacing.y = ggplot2::unit(.5, "cm"),
+      legend.margin = ggplot2::margin(),
 
       # Set plot margins
-      plot.margin = margin(10, 0, 0, 0),
-      panel.spacing = margin(10, 0, 0, 0)
+      plot.margin = ggplot2::margin(10, 0, 0, 0),
+      panel.spacing = ggplot2::margin(10, 0, 0, 0)
     )
 
 
@@ -144,9 +145,9 @@ tornadoplot_wtable <- function(data, settings, groupvar = "None", ref_arm, comp_
     # Create a line to show the difference between Placebo and Treatment frequencies
     ggplot2::geom_segment(
       data = data %>% dplyr::filter(group_val == "Total"),
-      ggplot2::aes(xend = after_stat(x), y = 0, yend = diff_neg),
+      ggplot2::aes(xend = ggplot2::after_stat(x), y = 0, yend = diff_neg),
       col = "#444E5F",
-      arrow = arrow(angle = 20, length = unit(1, "mm"))
+      arrow = ggplot2::arrow(angle = 20, length = ggplot2::unit(1, "mm"))
     ) +
 
     # Add PT text information near the bars
@@ -179,17 +180,17 @@ tornadoplot_wtable <- function(data, settings, groupvar = "None", ref_arm, comp_
     ggplot2::theme(
 
       # The default font color when not explicitly specified
-      text = element_text(color = "grey24"),
+      text = ggplot2::element_text(color = "grey24"),
 
       # Use a light color for the background of the plot and the panel.
-      plot.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
-      panel.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      plot.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      panel.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
 
       # Adjust axis parameters such as size and color.
-      axis.text.x.top = element_text(size = 6, color = "grey24"),
-      axis.ticks.x.top = element_line(size = 0.2, color = "grey24"),
-      axis.ticks.length.x.top = unit(1, "mm"),
-      axis.title.x.top = element_text(hjust=0.035, size = 6, margin = margin(0, 0, 5, 0)),
+      axis.text.x.top = ggplot2::element_text(size = 6, color = "grey24"),
+      axis.ticks.x.top = ggplot2::element_line(size = 0.2, color = "grey24"),
+      axis.ticks.length.x.top = ggplot2::unit(1, "mm"),
+      axis.title.x.top = ggplot2::element_text(hjust=0.035, size = 6, margin = ggplot2::margin(0, 0, 5, 0)),
 
       # remove Y axis elements
       axis.title.y = NULL,
@@ -197,12 +198,12 @@ tornadoplot_wtable <- function(data, settings, groupvar = "None", ref_arm, comp_
       axis.ticks.y = NULL,
 
       # Set plot margins
-      plot.margin = margin(10, 0, 0, 0),
-      panel.spacing = margin(10, 0, 0, 0)
+      plot.margin = ggplot2::margin(10, 0, 0, 0),
+      panel.spacing = ggplot2::margin(10, 0, 0, 0)
     )
 
   ## Present n(%) of AEs per treatment group
-  freqtable <- data_out %>%
+  freqtable <- data %>%
     dplyr::filter(group_val == "Total") %>%
     dplyr::ungroup() %>%
     dplyr::select(term_col, starts_with("placebo") & !ends_with("minus"), starts_with("treatment")) %>%
@@ -239,7 +240,7 @@ tornadoplot_wtable <- function(data, settings, groupvar = "None", ref_arm, comp_
 
     # Customize size legend
     ggplot2::scale_size(range = c(0.1, 5), guide = "none") +
-    ggplot2::guides(color = guide_legend(title = NULL, label.position = "bottom",
+    ggplot2::guides(color = ggplot2::guide_legend(title = NULL, label.position = "bottom",
                                         override.aes = list(shape = 18, size = 8, color = c("#8e9aaf", "#97C684")))
     ) +
 
@@ -252,35 +253,35 @@ tornadoplot_wtable <- function(data, settings, groupvar = "None", ref_arm, comp_
     ggplot2::theme(
 
       # The default font color when not explicitly specified
-      text = element_text(color = "grey24"),
+      text = ggplot2::element_text(color = "grey24"),
 
       # Use a light color for the background of the plot and the panel.
-      plot.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
-      panel.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      plot.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      panel.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
 
       # remove grid elements and border
-      panel.grid.major.x = element_blank(),
-      panel.grid.minor.x  = element_blank(),
-      panel.border = element_blank(),
-      panel.grid.major.y = element_blank(),
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.minor.x  = ggplot2::element_blank(),
+      panel.border = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_blank(),
 
       # remove ticks and title elements on Y axis
-      axis.ticks.y = element_blank(),
-      axis.ticks.x = element_blank(),
-      axis.text.y = element_text(family = "Arial", size = 8),
-      axis.title.y = element_blank(),
-      axis.text.x = element_blank(),
+      axis.ticks.y = ggplot2::element_blank(),
+      axis.ticks.x = ggplot2::element_blank(),
+      axis.text.y = ggplot2::element_text(family = "Arial", size = 8),
+      axis.title.y = ggplot2::element_blank(),
+      axis.text.x = ggplot2::element_blank(),
 
       # change legend appearance
       legend.position = "top",
       legend.text = ggtext::element_markdown(family = "Arial", size = 8),
-      legend.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
-      legend.key = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
-      legend.spacing.x = unit(1.5, 'cm'),
-      legend.margin = margin(0,90,-10,20),
+      legend.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      legend.key = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      legend.spacing.x = ggplot2::unit(1.5, 'cm'),
+      legend.margin = ggplot2::margin(0,90,-10,20),
 
       # Plot margins
-      plot.margin = margin(10, 15, 0, 0)
+      plot.margin = ggplot2::margin(10, 15, 0, 0)
     )
 
   # Combine both ggplot elements into the same graphic
@@ -302,11 +303,11 @@ paste0("The **bars** indicate the frequency of adverse events for <b style='colo
 and <b style='color:#497135'>",paste({{ comp_arm }}, collapse = " + "), " </b>. Only AEs with at least 1% occurence are presented.<br>
 The **arrows** show the difference of percentage between both groups. Arrows pointing to the right indicate a positive difference in favor of ", paste({{ ref_arm }}, collapse = " + "),
 "while arrows pointing to the left indicate a higher frequency of AEs<br> in ", paste({{ ref_arm }}, collapse = " + "), " than ", paste({{ comp_arm }}, collapse = " + "),".\n\n<i>(CDISC Pilot data)</i>"),
-      theme = ggplot2::theme(panel.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
-                             plot.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      theme = ggplot2::theme(panel.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+                             plot.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
                              plot.caption.position =  "plot",
-                             plot.margin = margin(10, 25, 10, 25),
-                             plot.caption = element_markdown(hjust = 0.01, size = 8, color = "grey38"))
+                             plot.margin = ggplot2::margin(10, 25, 10, 25),
+                             plot.caption = ggtext::element_markdown(hjust = 0.01, size = 8, color = "grey38"))
     )
 
   return(barplot)

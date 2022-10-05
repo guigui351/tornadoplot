@@ -105,8 +105,6 @@ mod_tornado_ui <- function(id){
       ),
       mainPanel(
         width = 9,
-
-        #style = "position: fixed; left: 21%; top: 88px; height: 1000px; overflow-y: auto;",
         plotOutput(ns('tornadoExplorer'),  width = "auto", height = "900px")
        )
     ))
@@ -116,79 +114,67 @@ mod_tornado_ui <- function(id){
 #' tornado Server Functions
 #'
 #' @export
-mod_tornado_server <- function(id){
+mod_tornado_server <- function(id, r_global){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
-    mapping <- golem::get_golem_options("mapping") # mapping contains the params object, either defined by the user / or by the safetyGraphics app (see run_app.R)
-
-    trt_grp <- reactive(
-      mapping$data$dm %>% dplyr::distinct(!!rlang::sym(mapping$settings$dm$treatment_col)) %>% dplyr::pull(),
+    r_local <- reactiveValues(
+      trt_grp = NULL, # Buffer variable for trt_grp
+      comp_arm_choices = NULL,  # Buffer variable for comp_arm
+      filter_ready = NULL # Indicate if filters are finished computing
     )
 
     observe({
 
-      # Define choices for Reference ARM group
-      shinyWidgets::updatePickerInput(
-        session,
-        'ref_arm',
-        choices = c(
-          trt_grp()
-        ),
-        selected = trt_grp()[1]
-      )
+      # Update buffer variable trt_grp with available treatment groups in DM data
+      r_local$trt_grp <- r_global$params$data$dm %>% dplyr::distinct(!!rlang::sym(r_global$params$settings$dm$treatment_col)) %>% dplyr::pull()
 
+      # Update choices for Reference ARM
+      shinyWidgets::updatePickerInput(session, 'ref_arm', choices = r_local$trt_grp, selected = r_local$trt_grp[1])
     })
 
-    observeEvent(input$ref_arm, {
-      # Define choices for Comparison ARM group
-      shinyWidgets::updatePickerInput(
-        session,
-        'comp_arm',
-        choices = c(
-          trt_grp()[!(trt_grp() %in% input$ref_arm)]
-        ),
-        selected = trt_grp()[!(trt_grp() %in% input$ref_arm)]
-      )
-    }, ignoreInit = TRUE)
+    observeEvent(
+      input$ref_arm,
+      {
+
+      # Update Comparison Arm choices with the ones not defined in input$ref_arm
+      comp_arm_choices <- r_local$trt_grp[!r_local$trt_grp %in% input$ref_arm]
+
+      if (!setequal(comp_arm_choices, r_local$comp_arm_choices)) {
+
+        # Update choices for Comparison ARM
+        shinyWidgets::updatePickerInput(session, 'comp_arm', choices = comp_arm_choices, selected = comp_arm_choices)
+
+        r_local$comp_arm_choices <- comp_arm_choices
+        return(NULL)
+      }}, ignoreNULL = FALSE
+    )
 
     observe({
-      # Define choices for AE grouping
-      shinyWidgets::updatePickerInput(
-        session,
-        'groupvar',
-        choices = c(
-          'None',
-          "Severity" = mapping$settings$aes$severity_col,
-          "Seriousness" = mapping$settings$aes$serious_col
-        ),
-        selected = 'None'
-      )
-
+      # Update choices for AE grouping by severity or seriousness
+      shinyWidgets::updatePickerInput(session, 'groupvar',
+                                      choices = c('None', "Severity" = r_global$params$settings$aes$severity_col, "Seriousness" = r_global$params$settings$aes$serious_col),
+                                      selected = 'None')
     })
 
-    # Make inputs user reactive
-    width <- reactive({input$width})
-    height_window <- reactive({input$height_window})
-    height <- reactive({input$height})
-    plotRes <- reactive({input$plotRes})
-
-    #draw the chart
+    # Draw the chart with inputs chosen
     individualGraph <- reactive({
       req(input$ref_arm)
       req(input$comp_arm)
 
+      # Create specific dataset and settings for Adverse Event Tornado plot
       params_in <-
         reactive(
           init_tornado(
-            mapping$data,
-            mapping$settings,
+            r_global$params$data,
+            r_global$params$settings,
             ref_arm = input$ref_arm,
             comp_arm = input$comp_arm,
             threshold = input$threshold
           )
         )
 
+      # Use frequency table plot using input data/settings from init_tornado function
       if (input$freqtable) {
         # Create main plot
         tornadoplot_wtable(
@@ -198,6 +184,7 @@ mod_tornado_server <- function(id){
           input$ref_arm,
           input$comp_arm
         )
+      # Without frequency table plot using input data/settings from init_tornado function
       } else {
         tornadoplot(
           params_in()$data,
@@ -210,41 +197,20 @@ mod_tornado_server <- function(id){
 
     })
 
+    # Download parameters : set width/height/plotRes reactive
+    width <- reactive({input$width})
+    height_window <- reactive({input$height_window})
+    height <- reactive({input$height})
+    plotRes <- reactive({input$plotRes})
+
+    # Render the plot object
     observe({
          output$tornadoExplorer <- renderPlot({
            individualGraph()
          }, res = 110, height = height_window())
     })
-    # Render plot as an image
-    # observe({
-    #   output$tornadoExplorer <- renderImage({
-    #     # A temp file to save the output.
-    #     outfile <- tempfile(fileext = '.png')
-    #
-    #     # Save png plot in the temp folder
-    #     ggplot2::ggsave(
-    #       filename = outfile,
-    #       plot = individualGraph(),
-    #       height = height(),
-    #       width = width(),
-    #       dpi = plotRes(),
-    #       units = "in",
-    #       type = "cairo",
-    #     )
-    #
-    #     # Return a list containing the filename
-    #     list(
-    #       src = normalizePath(outfile),
-    #       width = width,
-    #       height = height,
-    #       contentType = 'image/png',
-    #       alt = "This is alternate text"
-    #     )
-    #   }, deleteFile = TRUE)
-    # })
 
     # Download the plot chosen in png or pdf format
-    #extrafont::loadfonts(device="pdf")
     output$download <- downloadHandler(
       file =  function() {
         paste(input$filename, input$filetype, sep=".")

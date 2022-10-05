@@ -7,17 +7,22 @@ Description: Adverse Event Tornado Plot designed for use with
     {safetyGraphics}.
 License: MIT + file LICENSE
 Imports: 
+    admiral,
     config (>= 0.3.1),
     dplyr,
     emo (>= 0.0.0.9000),
     fullPage (>= 0.1.1),
     ggplot2,
+    ggtext,
     golem (>= 0.3.2),
+    lubridate,
     magrittr,
+    patchwork,
     rlang,
     safetyData,
     shiny (>= 1.7.1),
     shinybrowser (>= 1.0.0),
+    shinyWidgets,
     stringr,
     tidyr,
     typedjs (>= 0.0.3)

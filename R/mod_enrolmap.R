@@ -44,7 +44,7 @@ mod_enrolmap_ui <- function(id){
 #' map Server Functions
 #'
 #' @noRd
-mod_enrolmap_server <- function(id){
+mod_enrolmap_server <- function(id, r_global){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 

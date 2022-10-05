@@ -3,11 +3,9 @@
 #' @param request Internal parameter for `{shiny}`.
 #'     DO NOT REMOVE.
 #' @import shiny
-#' @importFrom magrittr "%>%"
-#' @import ggplot2
-#' @import dplyr
-#' @import stringr
 #' @export
+
+reactlog::reactlog_enable()
 app_ui <- function(request) {
 
 options <- list()
@@ -49,7 +47,7 @@ tagList(
                title = "Enrolment map",
                icon = icon("earth-americas", class = "fa-2x thin"),
                value = "enrolmap",
-               mod_enrolmap_ui("enrolmap_1")
+               #mod_enrolmap_ui("enrolmap_1")
              ),
              ## Tornado plot page
              tabPanel(

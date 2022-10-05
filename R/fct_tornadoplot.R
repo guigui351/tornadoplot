@@ -17,11 +17,13 @@
 #' )
 #' tornadoplot(data, settings)
 #'
-#' @import dplyr
-#' @import tidyr
-#' @import ggplot2
-#' @import ggtext
-#' @import patchwork
+#' @importFrom dplyr ungroup distinct pull filter select mutate left_join if_else
+#' @importFrom tidyr pivot_longer
+#' @importFrom ggplot2 ggplot aes geom_col geom_segment geom_point geom_text scale_y_continuous coord_cartesian scale_size scale_fill_manual
+#'  scale_color_manual coord_flip guides theme theme_void labs theme_light arrow unit guide_legend element_text element_line element_rect element_blank after_stat
+#' @importFrom ggtext element_markdown geom_richtext geom_textbox
+#' @importFrom patchwork plot_layout plot_annotation
+#' @importFrom tibble tibble
 #'
 #'@export
 
@@ -74,9 +76,9 @@ tornadoplot <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
     # Create a line to show the difference between Placebo and Treatment frequencies
     ggplot2::geom_segment(
       data = data %>% dplyr::filter(group_val == "Total"),
-      ggplot2::aes(xend = after_stat(x), y = 0, yend = diff_pos),
+      ggplot2::aes(xend = ggplot2::after_stat(x), y = 0, yend = diff_pos),
       col = "#497135",
-      arrow = arrow(angle = 20, length = unit(1, "mm"))
+      arrow = ggplot2::arrow(angle = 20, length = ggplot2::unit(1, "mm"))
     ) +
 
     # Add PT text information near the bars
@@ -100,7 +102,7 @@ tornadoplot <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
     ggplot2::coord_flip(clip = "off", ylim = c(0, 100)) +
 
     # Change legend keys (colors) in order to have a grey scale instead of AE severity colors chosen above
-    ggplot2::guides(fill = guide_legend("AE Grouping:", reverse = TRUE, byrow = TRUE, override.aes = list(fill = legend_col))) +
+    ggplot2::guides(fill = ggplot2::guide_legend("AE Grouping:", reverse = TRUE, byrow = TRUE, override.aes = list(fill = legend_col))) +
 
     # Set void theme
     ggplot2::theme_void(base_family = "sans") +
@@ -109,17 +111,17 @@ tornadoplot <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
     ggplot2::theme(
 
       # The default font color when not explicitly specified
-      text = element_text(color = "grey24"),
+      text = ggplot2::element_text(color = "grey24"),
 
       # Use a light color for the background of the plot and the panel.
-      plot.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
-      panel.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      plot.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      panel.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
 
       # Adjust axis parameters such as size and color.
-      axis.text.x.top = element_text(size = 6, color = "grey24"),
-      axis.ticks.x.top = element_line(size = 0.2, color = "grey24"),
-      axis.ticks.length.x.top = unit(1, "mm"),
-      axis.title.x.top = element_text(hjust=0.965, size = 6, margin = margin(0, 0, 5, 0)),
+      axis.text.x.top = ggplot2::element_text(size = 6, color = "grey24"),
+      axis.ticks.x.top = ggplot2::element_line(size = 0.2, color = "grey24"),
+      axis.ticks.length.x.top = ggplot2::unit(1, "mm"),
+      axis.title.x.top = ggplot2::element_text(hjust=0.965, size = 6, margin = ggplot2::margin(0, 0, 5, 0)),
 
       # remove Y axis elements
       axis.title.y = NULL,
@@ -129,14 +131,14 @@ tornadoplot <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
       # Customize legend text and position
       legend.position = c(0.77, 0.5),
       legend.direction = "vertical",
-      legend.key.width = unit(1, "cm"),
-      legend.box.spacing = unit(.5, "cm"),
-      legend.spacing.y = unit(.5, "cm"),
-      legend.margin = margin(),
+      legend.key.width = ggplot2::unit(1, "cm"),
+      legend.box.spacing = ggplot2::unit(.5, "cm"),
+      legend.spacing.y = ggplot2::unit(.5, "cm"),
+      legend.margin = ggplot2::margin(),
 
       # Set plot margins
-      plot.margin = margin(10, 0, 0, 0),
-      panel.spacing = margin(10, 0, 0, 0)
+      plot.margin = ggplot2::margin(10, 0, 0, 0),
+      panel.spacing = ggplot2::margin(10, 0, 0, 0)
     )
 
 
@@ -154,9 +156,9 @@ tornadoplot <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
     # Create a line to show the difference between Placebo and Treatment frequencies
     ggplot2::geom_segment(
       data = data %>% dplyr::filter(group_val == "Total"),
-      ggplot2::aes(xend = after_stat(x), y = 0, yend = diff_neg),
+      ggplot2::aes(xend = ggplot2::after_stat(x), y = 0, yend = diff_neg),
       col = "#444E5F",
-      arrow = arrow(angle = 20, length = unit(1, "mm"))
+      arrow = ggplot2::arrow(angle = 20, length = ggplot2::unit(1, "mm"))
     ) +
 
     # Add PT text information near the bars
@@ -189,17 +191,17 @@ tornadoplot <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
     ggplot2::theme(
 
       # The default font color when not explicitly specified
-      text = element_text(color = "grey24"),
+      text = ggplot2::element_text(color = "grey24"),
 
       # Use a light color for the background of the plot and the panel.
-      plot.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
-      panel.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      plot.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+      panel.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
 
       # Adjust axis parameters such as size and color.
-      axis.text.x.top = element_text(size = 6, color = "grey24"),
-      axis.ticks.x.top = element_line(size = 0.2, color = "grey24"),
-      axis.ticks.length.x.top = unit(1, "mm"),
-      axis.title.x.top = element_text(hjust=0.035, size = 6, margin = margin(0, 0, 5, 0)),
+      axis.text.x.top = ggplot2::element_text(size = 6, color = "grey24"),
+      axis.ticks.x.top = ggplot2::element_line(size = 0.2, color = "grey24"),
+      axis.ticks.length.x.top = ggplot2::unit(1, "mm"),
+      axis.title.x.top = ggplot2::element_text(hjust=0.035, size = 6, margin = ggplot2::margin(0, 0, 5, 0)),
 
       # remove Y axis elements
       axis.title.y = NULL,
@@ -207,19 +209,19 @@ tornadoplot <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
       axis.ticks.y = NULL,
 
       # Set plot margins
-      plot.margin = margin(10, 0, 0, 0),
-      panel.spacing = margin(10, 0, 0, 0)
+      plot.margin = ggplot2::margin(10, 0, 0, 0),
+      panel.spacing = ggplot2::margin(10, 0, 0, 0)
     )
 
   # Combine both ggplot elements into the same graphic
   final <- placebo_plot + treatment_plot + patchwork::plot_layout(widths = c(1,1)) +
     patchwork::plot_annotation(
       caption = "(CDISC Pilot data)",
-      theme = ggplot2::theme(panel.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
-                    plot.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
-                    plot.caption = element_text(hjust = 0.005, size = 8, face= "italic"),
+      theme = ggplot2::theme(panel.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+                    plot.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+                    plot.caption = ggplot2::element_text(hjust = 0.005, size = 8, face= "italic"),
                     plot.caption.position =  "plot",
-                    plot.margin = margin(20, 25, 20, 25))
+                    plot.margin = ggplot2::margin(20, 25, 20, 25))
     )
 
 
@@ -236,7 +238,7 @@ tornadoplot <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
              label.colour = "grey80") +
     ggtext::geom_textbox(
       inherit.aes = FALSE,
-      data = tibble(
+      data = tibble::tibble(
         x = 2.8,
         y = -80,
         label = paste0("The **bars** indicate the frequency of adverse events for <b style='color:#444E5F'>",paste({{ ref_arm }}, collapse = " + "),"</b>

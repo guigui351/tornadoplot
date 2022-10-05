@@ -1,4 +1,4 @@
-#' helpers 
+#' helpers
 #'
 #' @description A fct function to create theme of ggplot
 #'
@@ -20,8 +20,8 @@ theme_swim <- function(base_size = 28, base_family = "Roboto Condensed", ...) {
       axis.text.y = ggplot2::element_blank(),
       axis.ticks = ggplot2::element_blank(),
       axis.title.x = ggtext::element_markdown(size = 18,
-                                              color = "grey20", 
-                                              hjust = 0.42, 
+                                              color = "grey20",
+                                              hjust = 0.42,
                                               family = "Roboto Condensed",
                                               margin = ggplot2::margin(
                                                               t = 0.4,
@@ -46,7 +46,7 @@ theme_swim <- function(base_size = 28, base_family = "Roboto Condensed", ...) {
       legend.text.align = 0.1,
       plot.title = ggtext::element_markdown(size = 25/ggplot2::.pt, hjust = 0.5,
                                             color = "grey20"),
-      plot.subtitle = ggtext::element_markdown(size = 16, hjust = 0.5, 
+      plot.subtitle = ggtext::element_markdown(size = 16, hjust = 0.5,
                                                color = "grey20",
                                                margin = ggplot2::margin(
                                                                b = -0.1,
@@ -66,29 +66,30 @@ theme_swim <- function(base_size = 28, base_family = "Roboto Condensed", ...) {
       ...
     )
 }
-
+#' @importFrom ggplot2 ggplot ylab xlab theme_bw scale_x_date scale_colour_manual margin element_blank element_text
 #' @export
 # function to plot cumulative enrollment by date
 cumulative_plot_enrl = function(enrolled_aggregated, plot_date) {
   plot_df = subset(enrolled_aggregated, month <= plot_date)
   g1 = ggplot2::ggplot(plot_df, ggplot2::aes(x = month, y = cumsum_ce)) + ggplot2::geom_line(color = "#cc4c02") + ggplot2::geom_point(size = 1, alpha = 0.8, color = "#cc4c02") +
-    ggplot2::ylab("Cum. enrolled") +  ggplot2::xlab("Date") + ggplot2::theme_bw() + 
+    ggplot2::ylab("Cum. enrolled") +  ggplot2::xlab("Date") + ggplot2::theme_bw() +
     ggplot2::scale_colour_manual(values="#cc4c02") +
     ggplot2::scale_x_date(date_labels="%Y-%b",date_breaks  ="6 month") +
-    ggplot2::theme(legend.title = ggplot2::element_blank(), legend.position = "", axis.title = ggplot2::element_text(size=20/ggplot2::.pt), axis.text = ggplot2::element_text(size=15/ggplot2::.pt), 
+    ggplot2::theme(legend.title = ggplot2::element_blank(), legend.position = "", axis.title = ggplot2::element_text(size=20/ggplot2::.pt), axis.text = ggplot2::element_text(size=15/ggplot2::.pt),
           plot.margin = ggplot2::margin(5, 12, 5, 5))
   g1
 }
 
+#' @importFrom ggplot2 ggplot ylab xlab theme_bw scale_x_date scale_colour_manual margin element_blank element_text
 #' @export
 # function to plot cumulative rando by date
 cumulative_plot_rando = function(rando_aggregated, plot_date) {
   plot_df = subset(rando_aggregated, month <= plot_date)
   g2 = ggplot2::ggplot(plot_df, ggplot2::aes(x = month, y = cumsum_cr)) + ggplot2::geom_line(color = "#cc4c02") + ggplot2::geom_point(size = 1, alpha = 0.8, color = "#cc4c02") +
-    ggplot2::ylab("Cum. rando") +  ggplot2::xlab("Date") + ggplot2::theme_bw() + 
+    ggplot2::ylab("Cum. rando") +  ggplot2::xlab("Date") + ggplot2::theme_bw() +
     ggplot2::scale_colour_manual(values="#cc4c02") +
     ggplot2::scale_x_date(date_labels="%Y-%b",date_breaks  ="6 month") +
-    ggplot2::theme(legend.title = ggplot2::element_blank(), legend.position = "", axis.title = ggplot2::element_text(size=20/ggplot2::.pt), axis.text = ggplot2::element_text(size=15/ggplot2::.pt), 
+    ggplot2::theme(legend.title = ggplot2::element_blank(), legend.position = "", axis.title = ggplot2::element_text(size=20/ggplot2::.pt), axis.text = ggplot2::element_text(size=15/ggplot2::.pt),
           plot.margin = ggplot2::margin(5, 12, 5, 5))
   g2
 }

@@ -14,3 +14,12 @@ golem::document_and_reload()
 # Run the application
 options(shiny.trace=FALSE)
 run_app()
+
+#
+# mapping1 <-
+#   init_params(
+#     params$data,
+#     params$settings
+#   )
+#
+# params_with_adsl <- init_adsl(mapping1$data, mapping1$settings)

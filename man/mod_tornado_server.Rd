@@ -4,7 +4,7 @@
 \alias{mod_tornado_server}
 \title{tornado Server Functions}
 \usage{
-mod_tornado_server(id)
+mod_tornado_server(id, r_global)
 }
 \description{
 tornado Server Functions

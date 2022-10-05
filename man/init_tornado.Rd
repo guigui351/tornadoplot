@@ -25,5 +25,5 @@ Initialize Settings for Adverse Event Tornado plot widget
 }
 \examples{
 
-init_tornado(params$data, settings=params$settings, ref_arm= "Treatment", comp_arm = "Placebo")
+init_tornado(params$data, settings=params$settings, ref_arm= "Treatment", comp_arm = "Placebo", threshold = 1)
 }

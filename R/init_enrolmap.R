@@ -106,7 +106,5 @@ init_enrolmap <- function(data, settings) {
 
 }
 
-#mapping <- init_enrolmap(data = list(dm = sdtm_dm), settings = NULL)
-
 
 

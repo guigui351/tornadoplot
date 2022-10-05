@@ -5,13 +5,12 @@
 #'
 #' @examples
 #'
-#' init_tornado(params$data, settings=params$settings, ref_arm= "Treatment", comp_arm = "Placebo")
+#' init_tornado(params$data, settings=params$settings, ref_arm= "Treatment", comp_arm = "Placebo", threshold = 1)
 #' @return returns list with data and settings used for fct_tornadoplot
 #'
-#' @import dplyr
-#' @import tidyr
-#' @import ggplot2
-#' @import stringr
+#' @importFrom dplyr mutate filter arrange select group_by summarize if_else slice ungroup left_join right_join bind_rows
+#' @importFrom tidyr starts_with pivot_longer pivot_wider fill
+#' @importFrom stringr str_to_sentence
 #' @importFrom magrittr "%>%"
 #' @export
 
@@ -20,15 +19,6 @@ init_tornado <- function(data, settings, ref_arm= "Treatment", comp_arm = "Place
   # Print treatment group enter by users to the console
   print(comp_arm)
   print({{ ref_arm}})
-
-
-  # Define mandatory settings, if user didn't
-  if(is.null(settings)){
-    settings<-list(
-      aes=list(id_col="USUBJID", bodsys_col="AEBODSYS", term_col="AEDECOD", severity_col="AESEV", serious_col="AESER"),
-      dm=list(id_col="USUBJID", treatment_col="ARM",  "treatment_values"=list(group1="Placebo", "group2" = "Xanomeline High Dose"))
-    )
-  }
 
   # Convert settings to symbols ready for standard evaluation
   dm_id_sym <- rlang::sym(setting$dm$id_col)
@@ -79,7 +69,6 @@ init_tornado <- function(data, settings, ref_arm= "Treatment", comp_arm = "Place
       dplyr::mutate(bign = dplyr::n_distinct(!!dm_treatment_sym, !!dm_id_sym)) %>%
       dplyr::select(!!dm_id_sym, !!dm_treatment_sym, bign)
   }
-
 
   # Combine AE and DM datasets
   data_ae <- data$aes %>%
@@ -133,8 +122,6 @@ init_tornado <- function(data, settings, ref_arm= "Treatment", comp_arm = "Place
     tidyr::fill(total_perc, .direction = "downup")
 
 
-  data_out <<- data_ae1
-  #settings <- c(settings$aes, settings$dm)
   params <-
     list(
       data = data_ae1,
