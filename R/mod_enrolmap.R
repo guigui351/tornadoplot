@@ -34,7 +34,13 @@ mod_enrolmap_ui <- function(id){
                                                    choices = format(as.Date(Sys.Date(),"%Y-%m-%d"), "%d %b %y"),
                                                    selected = format(as.Date(Sys.Date(),"%Y-%m-%d"), "%d %b %y"),
                                                    grid = FALSE,
-                                                   animate=animationOptions(interval = 2000, loop = FALSE))
+                                                   animate=animationOptions(interval = 2000, loop = FALSE)),
+                      shinyWidgets::materialSwitch(
+                        inputId = ns("providertitles"),
+                        label = "Light / Black mode",
+                        value = TRUE,
+                        right = TRUE
+                      )
 
         )
     )
@@ -152,30 +158,60 @@ mod_enrolmap_server <- function(id, r_global){
        tornadoplot::worldcountry[tornadoplot::worldcountry$"ADM0_A3" %in% reactive_db()$country, ]
     })
 
+
+  #     cartoDB <- reactive({
+  #       req(input$providertitles)
+  #       if (input$providertitles){
+  #         leaflet::providers$CartoDB.DarkMatter
+  #       }
+  #       else {
+  #         leaflet::providers$CartoDB.Positron
+  #       }
+  # })
+
+
     observe(priority = 2, {
        bins <- c(0, 5, 10, 20, 30, Inf)
        qpal <- leaflet::colorBin("Blues", params_in()$data$enrolled_bycountry$cumsum_country_ce, bins = bins)
+
+       if (input$providertitles) {
        # Leaflet / Render basemap
-       output$mymap <- leaflet::renderLeaflet({
-         # create base map
-         leaflet::leaflet(reactive_polygons()) %>%
-           leaflet::addTiles() %>%
-           leaflet::addLayersControl(
-             position = "bottomright",
-             overlayGroups = c("Enrolled (cumulative)", "Randomized (cumulative)"),
-             options = leaflet::layersControlOptions(collapsed = FALSE)) %>%
-           leaflet::hideGroup(c("Enrolled (new)")) %>%
-           #leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron) %>%
-           leaflet::addProviderTiles(leaflet::providers$CartoDB.DarkMatter) %>%
-           leaflet::fitBounds(~-100,-60,~60,70) %>%
-           leaflet::addLegend("bottomleft", pal = qpal, values = ~params_in()$data$enrolled_bycountry$cumsum_country_ce,
-                              title = "<small>Enrolled by country</small>") %>%
-           leaflet::addMiniMap()
-       })
+       output$mymap <- leaflet::renderLeaflet(
+           # create base map
+           leaflet::leaflet(reactive_polygons()) %>%
+             leaflet::addTiles() %>%
+             leaflet::addLayersControl(
+               position = "bottomright",
+               overlayGroups = c("Enrolled (cumulative)", "Randomized (cumulative)"),
+               options = leaflet::layersControlOptions(collapsed = FALSE)) %>%
+             leaflet::hideGroup(c("Enrolled (new)")) %>%
+             # Black mode
+             leaflet::addProviderTiles(leaflet::providers$CartoDB.DarkMatter) %>%
+             leaflet::fitBounds(~-100,-60,~60,70) %>%
+             leaflet::addLegend("bottomleft", pal = qpal, values = ~params_in()$data$enrolled_bycountry$cumsum_country_ce,
+                                title = "<small>Enrolled by country</small>") %>%
+             leaflet::addMiniMap()
+        )} else {
+          output$mymap <- leaflet::renderLeaflet(
+            # create base map
+            leaflet::leaflet(reactive_polygons()) %>%
+              leaflet::addTiles() %>%
+              leaflet::addLayersControl(
+                position = "bottomright",
+                overlayGroups = c("Enrolled (cumulative)", "Randomized (cumulative)"),
+                options = leaflet::layersControlOptions(collapsed = FALSE)) %>%
+              leaflet::hideGroup(c("Enrolled (new)")) %>%
+              # Light mode
+              leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron) %>%
+              leaflet::fitBounds(~-100,-60,~60,70) %>%
+              leaflet::addLegend("bottomleft", pal = qpal, values = ~params_in()$data$enrolled_bycountry$cumsum_country_ce,
+                                 title = "<small>Enrolled by country</small>") %>%
+              leaflet::addMiniMap()
+       )}
      })
 
     # Update basemap and draw filled polygons and add circles for number of enrolled and randomized participants
-    observeEvent(input$plot_date, priority = 3, {
+    observeEvent(c(input$plot_date, input$providertitles), priority = 3, {
       # qpal <- leaflet::colorQuantile("Blues", params_in()$data$enrolled_bycountry$cumsum_country_ce, n = 7)
       bins <- c(0, 5, 10, 20, 30, Inf)
       qpal <- leaflet::colorBin("Blues", params_in()$data$enrolled_bycountry$cumsum_country_ce, bins = bins)

@@ -47,7 +47,7 @@ tagList(
                title = "Enrolment map",
                icon = icon("earth-americas", class = "fa-2x thin"),
                value = "enrolmap",
-               #mod_enrolmap_ui("enrolmap_1")
+               mod_enrolmap_ui("enrolmap_1")
              ),
              ## Tornado plot page
              tabPanel(
