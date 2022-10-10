@@ -10,7 +10,9 @@
 #' @return returns list with ADSL data added to other data and settings
 #'
 #' @importFrom dplyr mutate filter arrange select group_by summarize if_else slice ungroup left_join right_join
-#' @importFrom admiral derive_vars_dtm derive_vars_merged derive_vars_dtm_to_dt derive_var_trtdurd derive_vars_dt derive_var_disposition_status derive_vars_duration derive_var_merged_exist_flag derive_var_extreme_dt date_source
+#' @importFrom admiral derive_vars_dtm derive_vars_merged derive_vars_dtm_to_dt derive_var_trtdurd derive_vars_dt
+#'             derive_var_disposition_status derive_vars_duration derive_var_merged_exist_flag derive_var_extreme_dt
+#'             date_source derive_vars_disposition_reason
 #' @importFrom magrittr "%>%"
 #' @importFrom tidyr starts_with
 #' @export
@@ -115,6 +117,16 @@ init_adsl <- function(data, settings) {
           format_new_var = format_eoxxstt,
           filter_ds = eval(rlang::parse_expr(settings$ds$filter_eosdt))
         ) %>%
+        # EOS reason
+        admiral::derive_vars_disposition_reason(
+          dataset_ds = ds_ext,
+          new_var = DCSREAS,
+          reason_var = DSDECOD,
+          new_var_spe = DCSREASP,
+          reason_var_spe = DSTERM,
+          format_new_vars = format_dcsreas,
+          filter_ds = eval(rlang::parse_expr(settings$ds$filter_eosdt))
+        ) %>%
         # Derive Randomization Date
         admiral::derive_vars_merged(
           dataset_add = ds_ext,
@@ -203,7 +215,7 @@ init_adsl <- function(data, settings) {
     if(!is.null(settings$dm$baseline_cols)){
       adsl <- adsl %>%
         select(!!dm_id_sym, !!dm_treatment_sym, !!dm_siteid_sym, !!dm_country_sym, !!dm_ifcdt_sym, !!dm_dthdt_sym,
-               RFSTDTC, SCRFDT, tidyr::starts_with("TRT"), tidyr::starts_with("EOS"), tidyr::starts_with("DTH"),
+               RFSTDTC, SCRFDT, RANDDT, tidyr::starts_with("TRT"), tidyr::starts_with("EOS"), tidyr::starts_with("DCS"), tidyr::starts_with("DTH"),
                LSTALVDT, SAFFL, !!!baseline_cols_syms)
     }
 
