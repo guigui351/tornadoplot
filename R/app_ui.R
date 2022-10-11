@@ -5,7 +5,6 @@
 #' @import shiny
 #' @export
 
-reactlog::reactlog_enable()
 app_ui <- function(request) {
 
 options <- list()

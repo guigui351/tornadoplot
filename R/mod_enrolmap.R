@@ -9,6 +9,10 @@
 #' @importFrom shiny NS tagList
 #' @importClassesFrom sp SpatialPolygonsDataFrame SpatialPolygons
 #' @importMethodsFrom sp $
+#' @importFrom leaflet leafletOutput colorBin renderLeaflet leaflet addTiles addLayersControl layersControlOptions
+#' hideGroup addProviderTiles fitBounds addLegend addMiniMap leafletProxy clearMarkers clearShapes addCircleMarkers addPolygons
+#' popupOptions
+#' @export
 
 mod_enrolmap_ui <- function(id){
   ns <- NS(id)
