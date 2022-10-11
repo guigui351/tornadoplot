@@ -54,20 +54,17 @@ mod_enrolmap_server <- function(id, r_global){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
-    # mapping contains the params object, either defined by the user / or by the safetyGraphics app (see run_app.R)
-    mapping <- golem::get_golem_options("mapping")
-
     # Get treatment groups from DM data
     trt_grp <- reactive(
-      mapping$data$dm %>% dplyr::distinct(!!rlang::sym(mapping$settings$dm$treatment_col)) %>% dplyr::pull(),
+      r_global$params$data$dm %>% dplyr::distinct(!!rlang::sym(r_global$params$settings$dm$treatment_col)) %>% dplyr::pull(),
     )
 
     # Load init_enrolmap function to get updated datasets ready to be used
     params_in <-
       reactive(
         init_enrolmap(
-          mapping$data,
-          mapping$settings
+          r_global$params$data,
+          r_global$params$settings
         )
       )
 
@@ -157,18 +154,6 @@ mod_enrolmap_server <- function(id, r_global){
     reactive_polygons = reactive({
        tornadoplot::worldcountry[tornadoplot::worldcountry$"ADM0_A3" %in% reactive_db()$country, ]
     })
-
-
-  #     cartoDB <- reactive({
-  #       req(input$providertitles)
-  #       if (input$providertitles){
-  #         leaflet::providers$CartoDB.DarkMatter
-  #       }
-  #       else {
-  #         leaflet::providers$CartoDB.Positron
-  #       }
-  # })
-
 
     observe(priority = 2, {
        bins <- c(0, 5, 10, 20, 30, Inf)
