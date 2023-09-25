@@ -298,16 +298,14 @@ tornadoplot_wtable <- function(data, settings, groupvar = "None", ref_arm, comp_
   # Add caption inside the plot
   barplot <- aetable + final + patchwork::plot_layout(widths = c(0.25,0.75)) +
     patchwork::plot_annotation(
-      caption =
-paste0("The **bars** indicate the frequency of adverse events for <b style='color:#444E5F'>",paste({{ ref_arm }}, collapse = " + "),"</b>
-and <b style='color:#497135'>",paste({{ comp_arm }}, collapse = " + "), " </b>. Only AEs with at least 1% occurence are presented.<br>
-The **arrows** show the difference of percentage between both groups. Arrows pointing to the right indicate a positive difference in favor of ", paste({{ ref_arm }}, collapse = " + "),
-"while arrows pointing to the left indicate a higher frequency of AEs<br> in ", paste({{ ref_arm }}, collapse = " + "), " than ", paste({{ comp_arm }}, collapse = " + "),".\n\n<i>(CDISC Pilot data)</i>"),
+      caption = paste0("The **bars** indicate the frequency of adverse events for <b style='color:#444E5F'>",paste({{ ref_arm }}, collapse = " + "),"</b>
+and <b style='color:#497135'>",paste({{ comp_arm }}, collapse = " + "), "</b>.<br>The **arrows** show the difference of percentage between both groups.<br>Arrows pointing to the right indicate a positive difference in favor of <b style='color:#444E5F'>", paste({{ comp_arm }}, collapse = " + "),
+"</b> while arrows pointing to the left indicate a higher frequency of AEs in <b style='color:#444E5F'>", paste({{ ref_arm }}, collapse = " + "), "</b> than <b style='color:#497135'>", paste({{ comp_arm }}, collapse = " + "), "</b>"),
       theme = ggplot2::theme(panel.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
                              plot.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
                              plot.caption.position =  "plot",
                              plot.margin = ggplot2::margin(10, 25, 10, 25),
-                             plot.caption = ggtext::element_markdown(hjust = 0.01, size = 8, color = "grey38"))
+                             plot.caption = ggtext::element_markdown(hjust = 0, size = 8, color = "grey38"))
     )
 
   return(barplot)

@@ -9,11 +9,12 @@
 #' @importFrom shiny NS tagList
 #' @importClassesFrom sp SpatialPolygonsDataFrame SpatialPolygons
 #' @importMethodsFrom sp $
+#' @export
+
 #' @importFrom leaflet leafletOutput colorBin renderLeaflet leaflet addTiles addLayersControl layersControlOptions
 #' hideGroup addProviderTiles fitBounds addLegend addMiniMap leafletProxy clearMarkers clearShapes addCircleMarkers addPolygons
 #' popupOptions
-#' @export
-
+#'
 mod_enrolmap_ui <- function(id){
   ns <- NS(id)
   tagList(
@@ -73,10 +74,10 @@ mod_enrolmap_server <- function(id, r_global){
       )
 
     # Use for first tabpanel / number of enrolled/randomized patients at yyyy date
-    observe(priority = 1, {
+     observe(priority = 1, {
 
       current_date = as.Date(Sys.Date(),"%Y-%m-%d")
-      choice_date = sort(unique(params_in()$data$data_enrolled$rficdt))
+      choice_date = sort(unique(params_in()$data$data_enrolled$RFICDT))
       choice_date_latest = choice_date[length(choice_date)]
 
       # Updates choices dates using study informed consent date
@@ -86,7 +87,7 @@ mod_enrolmap_server <- function(id, r_global){
         choices = format(choice_date, "%d %b %y"),
         selected = format(choice_date_latest, "%d %b %y")
        )
-    })
+     })
 
     # Format mapping date entered by user
     formatted_date = reactive({
@@ -100,7 +101,7 @@ mod_enrolmap_server <- function(id, r_global){
 
     # Get data of enrolled participants up to the mapping date
     reactive_db = reactive({
-      params_in()$data$data_enrolled %>% dplyr::filter(rficdt <= formatted_date())
+      params_in()$data$data_enrolled %>% dplyr::filter(RFICDT <= formatted_date())
     })
 
     # Get data of number of country enrolled up to the mapping date
@@ -154,7 +155,7 @@ mod_enrolmap_server <- function(id, r_global){
       cumulative_plot_rando(params_in()$data$rando_aggregated, formatted_date())
     })
 
-    # # Leaflet / filter world map with countries that started to enroll participants
+    # Leaflet / filter world map with countries that started to enroll participants
     reactive_polygons = reactive({
        tornadoplot::worldcountry[tornadoplot::worldcountry$"ADM0_A3" %in% reactive_db()$country, ]
     })

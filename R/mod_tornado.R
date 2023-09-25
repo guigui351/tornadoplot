@@ -127,7 +127,10 @@ mod_tornado_server <- function(id, r_global){
     observe({
 
       # Update buffer variable trt_grp with available treatment groups in DM data
-      r_local$trt_grp <- r_global$params$data$dm %>% dplyr::distinct(!!rlang::sym(r_global$params$settings$dm$treatment_col)) %>% dplyr::pull()
+      r_local$trt_grp <- r_global$params$data$dm %>%
+        dplyr::filter(!(!!rlang::sym(r_global$params$settings$dm$treatment_col) %in% c('SCRNFAIL','NOTASSGN', ''))) %>%
+        dplyr::distinct(!!rlang::sym(r_global$params$settings$dm$treatment_col)) %>%
+        dplyr::pull()
 
       # Update choices for Reference ARM
       shinyWidgets::updatePickerInput(session, 'ref_arm', choices = r_local$trt_grp, selected = r_local$trt_grp[1])

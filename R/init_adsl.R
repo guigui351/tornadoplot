@@ -1,4 +1,3 @@
-
 #' Create a small ADSL dataset using SDTM sources datasets and settings
 #'
 #' @param data named list of data
@@ -9,7 +8,7 @@
 #' init_adsl(params$data, settings=params$settings)
 #' @return returns list with ADSL data added to other data and settings
 #'
-#' @importFrom dplyr mutate filter arrange select group_by summarize if_else slice ungroup left_join right_join
+#' @importFrom dplyr mutate filter arrange select group_by summarize if_else slice ungroup left_join right_join vars case_when rowwise across ends_with mutate_at
 #' @importFrom admiral derive_vars_dtm derive_vars_merged derive_vars_dtm_to_dt derive_var_trtdurd derive_vars_dt
 #'             derive_var_disposition_status derive_vars_duration derive_var_merged_exist_flag derive_var_extreme_dt
 #'             date_source derive_vars_disposition_reason
@@ -54,19 +53,20 @@ init_adsl <- function(data, settings) {
       )
 
     adsl <- data$dm %>%
-      ## derive treatment variables (TRT01P) ----
-      dplyr::mutate(TRT01P = !!dm_treatment_sym) %>%
-      ## derive treatment start date (TRTSDTM) ----
+       dplyr::select(-c(!!!baseline_cols_syms)) %>%
+       # derive treatment variables (TRT01P) ----
+       dplyr::mutate(TRT01P = !!dm_treatment_sym)  %>%
+       # derive treatment start date (TRTSDTM) ----
       admiral::derive_vars_merged(
         dataset_add = ex_ext,
+        by_vars = vars(!!dm_id_sym),
         filter_add = (!!ex_dose_sym > 0 |
                      (!!ex_dose_sym == 0 &
                          stringr::str_detect(!!ex_trt_sym, "PLACEBO"))) &
                      !is.na(EXSTDTM),
         new_vars = vars(TRTSDTM = EXSTDTM, TRTSTMF = EXSTTMF),
         order = vars(EXSTDTM, EXSEQ),
-        mode = "first",
-        by_vars = vars(!!dm_id_sym)
+        mode = "first"
       ) %>%
       ## derive treatment end date (TRTEDTM) ----
       admiral::derive_vars_merged(
@@ -93,15 +93,14 @@ init_adsl <- function(data, settings) {
         new_vars_prefix = "DSST"
       )
 
-
-      adsl <- adsl %>%
-        # Screen failure date
-        admiral::derive_vars_merged(
-          dataset_add = ds_ext,
-          by_vars = vars(!!ds_id_sym),
-          new_vars = vars(SCRFDT = DSSTDT),
-          filter_add = eval(rlang::parse_expr(settings$ds$filter_scrdt))
-        ) %>%
+    adsl <- adsl %>%
+      # Screen failure date
+      admiral::derive_vars_merged(
+        dataset_add = ds_ext,
+        by_vars = vars(!!ds_id_sym),
+        new_vars = vars(SCRFDT = DSSTDT),
+        filter_add = eval(rlang::parse_expr(settings$ds$filter_scrdt))
+      ) %>%
         # EOS date
         admiral::derive_vars_merged(
           dataset_add = ds_ext,
@@ -124,8 +123,33 @@ init_adsl <- function(data, settings) {
           reason_var = DSDECOD,
           new_var_spe = DCSREASP,
           reason_var_spe = DSTERM,
-          format_new_vars = format_dcsreas,
+          #format_new_vars = format_dcsreas,
           filter_ds = eval(rlang::parse_expr(settings$ds$filter_eosdt))
+        ) %>%
+        # EOT date
+        admiral::derive_vars_merged(
+          dataset_add = ds_ext,
+          by_vars = vars(STUDYID, USUBJID),
+          new_vars = vars(EOTDT = DSSTDT),
+          filter_add = eval(rlang::parse_expr(settings$ds$filter_eotdt))
+        ) %>%
+        # EOT status
+        admiral::derive_var_disposition_status(
+          dataset_ds = ds_ext,
+          new_var = EOTSTT,
+          status_var = DSDECOD,
+          format_new_var = format_eoxxstt,
+          filter_ds = eval(rlang::parse_expr(settings$ds$filter_eotdt))
+        ) %>%
+        # EOT reason
+        admiral::derive_vars_disposition_reason(
+          dataset_ds = ds_ext,
+          new_var = DCTREAS,
+          reason_var = DSDECOD,
+          new_var_spe = DCTREASP,
+          reason_var_spe = DSTERM,
+          #format_new_vars = format_dctreas,
+          filter_ds = eval(rlang::parse_expr(settings$ds$filter_eotdt))
         ) %>%
         # Derive Randomization Date
         admiral::derive_vars_merged(
@@ -208,18 +232,41 @@ init_adsl <- function(data, settings) {
         by_vars = vars(!!dm_id_sym),
         new_var = SAFFL,
         condition = (!!ex_dose_sym > 0 | (!!ex_dose_sym == 0 & stringr::str_detect(!!ex_trt_sym, "PLACEBO")))
-      )
-
+      ) %>%
+      mutate(ACUTDT = as.Date(settings$dm$cutoff_val, "%Y-%m-%d"))
 
     ## Add baseline variables defined by user ----
     if(!is.null(settings$dm$baseline_cols)){
+
+      vars_already_indm <- intersect(names(data$dm %>% select(!!!baseline_cols_syms)), names(adsl))
+
       adsl <- adsl %>%
-        select(!!dm_id_sym, !!dm_treatment_sym, !!dm_siteid_sym, !!dm_country_sym, !!dm_ifcdt_sym, !!dm_dthdt_sym,
-               RFSTDTC, SCRFDT, RANDDT, tidyr::starts_with("TRT"), tidyr::starts_with("EOS"), tidyr::starts_with("DCS"), tidyr::starts_with("DTH"),
-               LSTALVDT, SAFFL, !!!baseline_cols_syms)
+        select(STUDYID, !!dm_id_sym, !!dm_treatment_sym, !!dm_siteid_sym, !!dm_country_sym, !!dm_ifcdt_sym, !!dm_dthdt_sym,
+               RFSTDTC, SCRFDT, RANDDT, tidyr::starts_with("TRT"),
+               tidyr::starts_with("EOT"), tidyr::starts_with("DCT"),tidyr::starts_with("EOS"),  tidyr::starts_with("DCS"),
+               tidyr::starts_with("DTH"), ACUTDT, LSTALVDT, SAFFL)
+
+      if(!is.null(vars_already_indm)){
+          adsl <- adsl %>%
+            select(-all_of(vars_already_indm))
+      }
+
+      adsl <- adsl %>%
+        left_join(data$dm %>% select("USUBJID", !!!baseline_cols_syms), by = "USUBJID") %>%
+        mutate(LSTALVDT_ALL = max(LSTALVDT)) %>%
+        rowwise(!!dm_id_sym) %>%
+        mutate(EOSDT = if_else(EOSSTT == "Ongoing", LSTALVDT, EOSDT),
+               EOSSTT = stringr::str_to_sentence(EOSSTT),
+               !!dm_country_sym := if_else(!!dm_country_sym != "", !!dm_country_sym, "Missing info"),
+               DCSREAS = if_else(DCSREAS != ""| !is.na(DCSREAS), stringr::str_to_sentence(DCSREAS), "Study Ongoing"),
+               TRTDURW =  ifelse(!is.na(TRTDURD), round(TRTDURD / 7, digits = 1), NA),
+               STDDURW = ifelse(!is.na(EOSDT), round(as.numeric((EOSDT - TRTSDT + 1)) / 7, digits = 1), NA),
+               TIM2DTHW = ifelse(!is.na(DTHDT) , round((as.numeric(DTHDT - TRTSDT + 1)) / 7, digits = 1), NA),
+               TIM2CUTW = ifelse(!is.na(LSTALVDT_ALL), round((as.numeric(LSTALVDT_ALL - TRTSDT + 1)) / 7, digits = 1), NA)) %>%
+        ungroup()
     }
 
-    # return params with new datasets and settings ready to be used in the mod_enrolmap
+    # return params with new datasets and settings ready to be used in the init_exposure / mod_exposure
     params_with_adsl <-
       list(
         data = append(data, list(adsl=adsl), after = length(data)),

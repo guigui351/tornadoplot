@@ -21,7 +21,7 @@ init_tornado <- function(data, settings, ref_arm= "Treatment", comp_arm = "Place
   print({{ ref_arm}})
 
   # Convert settings to symbols ready for standard evaluation
-  dm_id_sym <- rlang::sym(setting$dm$id_col)
+  dm_id_sym <- rlang::sym(settings$dm$id_col)
   dm_treatment_sym <- rlang::sym(settings$dm$treatment_col)
 
   ae_id_sym <- rlang::sym(settings$aes$id_col)
@@ -70,6 +70,7 @@ init_tornado <- function(data, settings, ref_arm= "Treatment", comp_arm = "Place
       dplyr::select(!!dm_id_sym, !!dm_treatment_sym, bign)
   }
 
+
   # Combine AE and DM datasets
   data_ae <- data$aes %>%
     dplyr::inner_join(data_dm, by = settings$dm$id_col)  %>%
@@ -85,17 +86,27 @@ init_tornado <- function(data, settings, ref_arm= "Treatment", comp_arm = "Place
   # Frequency py PT and AE grouping, as well as difference of frequency between both treatment arms combination
   data_ae1 <- data_ae %>%
     dplyr::mutate(None = factor("All")) %>%
-    # Create Total severity rows
-    dplyr::bind_rows(data_ae %>% dplyr::mutate(None = "Total", !!ae_severity_sym := "Total", !!ae_serious_sym := "Total")) %>%
+    # Transpose
     tidyr::pivot_longer(cols = c(None, !!ae_severity_sym, !!ae_serious_sym), #pivot longer on flag data
                         names_to = "group_col",
                         values_to = "group_val") %>%
+    # Keep the worst severe case only, ie the last one by 'group_val' (Mild, Moderate, Severe & Not serious, Serious)
+    dplyr::group_by(!!dm_id_sym, bign, treatment_group, term_col, group_col) %>%
+    dplyr::arrange(!!dm_id_sym, bign, treatment_group, term_col, group_col, group_val) %>%
+    dplyr::slice(dplyr::n())  %>%
+    dplyr::ungroup() %>%
+    # Create Total severity rows
+    dplyr::bind_rows(dplyr::filter(., !is.na(group_val)) %>% dplyr::mutate(None = "Total", group_val= "Total")) %>%
     dplyr::filter(!is.na(group_val)) %>%
-    # Calculate frequencies usinf add_count function
+    # Calculate frequencies using add_count function
+    dplyr::group_by(!!dm_id_sym, bign, treatment_group, term_col, group_col, group_val) %>%
+    dplyr::arrange(!!dm_id_sym, bign, treatment_group, term_col, group_col, group_val) %>%
+    dplyr::slice(dplyr::n()) %>%
+    dplyr::ungroup() %>%
     dplyr::add_count(bign, treatment_group, term_col, group_col, group_val, sort = TRUE) %>%
     dplyr::distinct(bign, treatment_group, term_col, group_col, group_val, n) %>%
     dplyr::arrange(bign, treatment_group, term_col, group_col, group_val, n) %>%
-    # Create a variable 'tokeep' to keep only AEs with at least 3 occurences within both treatment arms
+    # Create a variable 'tokeep' to keep only AEs with at least 3 occurrences within both treatment arms
     dplyr::mutate(tokeep = dplyr::if_else(group_val == "Total" & round(n/bign*100, 2) > {{ threshold }}, 1, NA_real_)) %>%
     dplyr::group_by(term_col, group_col) %>%
     # Fill 'tokeep' created above within each AE decod
@@ -120,7 +131,6 @@ init_tornado <- function(data, settings, ref_arm= "Treatment", comp_arm = "Place
                   diff_pos = dplyr::if_else(diff > 0, diff, NA_real_),
                   diff_neg = dplyr::if_else(diff < 0, diff, NA_real_)) %>%
     tidyr::fill(total_perc, .direction = "downup")
-
 
   params <-
     list(

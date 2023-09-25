@@ -20,6 +20,7 @@ init_params <- function(data, settings) {
   if(is.null(settings$dm$ifcdt_col))       {settings$dm$ifcdt_col        <- "RFICDTC"}
   if(is.null(settings$dm$dthdt_col))       {settings$dm$dthdt_col        <- "DTHDTC"}
   if(is.null(settings$dm$baseline_cols))   {settings$dm$baseline_cols    <- c("AGE", "RACE", "ETHNIC")}
+  if(is.null(settings$dm$cutoff_val))      {settings$dm$cutoff_val       <- as.Date(Sys.Date(), "%Y-%m-%d")}
 
   # Exposure settings
   if(is.null(settings$ex$id_col))   {settings$ex$id_col      <- "USUBJID"}
@@ -33,6 +34,7 @@ init_params <- function(data, settings) {
   if(is.null(settings$ds$dsdtc_col))    {settings$ds$dsdtc_col     <- "DSSTDTC"}
   if(is.null(settings$ds$filter_scrdt)) {settings$ds$filter_scrdt  <- "DSCAT == 'DISPOSITION EVENT' & DSDECOD == 'SCREEN FAILURE'"}
   if(is.null(settings$ds$filter_eosdt)) {settings$ds$filter_eosdt  <- "DSCAT == 'DISPOSITION EVENT' & DSDECOD != 'SCREEN FAILURE'"}
+  if(is.null(settings$ds$filter_eotdt)) {settings$ds$filter_eotdt  <- "DSCAT == 'DISPOSITION EVENT' & DSDECOD != 'SCREEN FAILURE'"}
   if(is.null(settings$ds$filter_randdt)){settings$ds$filter_randdt <- "DSDECOD == 'RANDOMIZED'"}
 
   # Adverse Events settings
@@ -57,7 +59,8 @@ init_params <- function(data, settings) {
       country_col=settings$dm$country_col,
       ifcdt_col=settings$dm$ifcdt_col,
       dthdt_col=settings$dm$dthdt_col,
-      baseline_cols=settings$dm$baseline_cols
+      baseline_cols=settings$dm$baseline_cols,
+      cutoff_val=settings$dm$cutoff_val
     ),
     ex=list(
       id_col=settings$ex$id_col,
@@ -71,6 +74,7 @@ init_params <- function(data, settings) {
       dsdtc_col=settings$ds$dsdtc_col,
       filter_scrdt=settings$ds$filter_scrdt,
       filter_eosdt=settings$ds$filter_eosdt,
+      filter_eotdt=settings$ds$filter_eotdt,
       filter_randdt=settings$ds$filter_randdt
     ),
     aes=list(
@@ -87,6 +91,21 @@ init_params <- function(data, settings) {
       lbdtc_col=settings$lb$lbdtc_col
     )
   )
+
+  # Assign dose regimen for the variable entered by the user in settings$dm$treatment_col
+  # This is solution for user that does not provide the group_dose df in pre-process
+  if (is.null(data$group_dose)) {
+
+    unique_trtcol <- unique(convert_blanks_to_na(data$dm[settings$dm$treatment_col]))
+    unique_trtcol <- unique_trtcol[!is.na(unique_trtcol)]
+    unique_dose <- unique(convert_blanks_to_na(data$ex$EXDOSE))
+    unique_dose <- unique_dose[!is.na(unique_dose)]
+
+    data$group_dose <- data.frame(groupvar = rep(settings$dm$treatment_col, n_distinct(unique_trtcol)*n_distinct(unique_dose)),
+                                  groupval = rep(unique(unique_trtcol), each = n_distinct(unique_dose)),
+                                  dose_regimen = c(rep(unique_dose, n_distinct(unique_trtcol))))
+
+  }
 
   # return params with new datasets and settings ready to be used in the different modules
   params <-

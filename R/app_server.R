@@ -26,12 +26,25 @@ app_server <- function(input, output, session) {
       params$settings
     )
 
-  r_global$params_with_adsl <- reactive(
-    init_adsl(
+  # Add small ADSL created with SDTM domains / use of ADMIRAL package
+  r_global$params <-
+    isolate(init_adsl(
       r_global$params$data,
       r_global$params$settings
     )
   )
+
+  # Add small ADEX created with SDTM domains and ADSL / use of ADMIRAL package
+  r_global$params <-
+    isolate(init_adex(
+      r_global$params$data,
+      r_global$params$settings
+    )
+  )
+
+  observeEvent(r_global$params, {
+    mytest <<- r_global$params
+  })
 
   mod_tornado_server("tornado_1", r_global = r_global)
   mod_enrolmap_server("enrolmap_1", r_global = r_global)

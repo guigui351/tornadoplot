@@ -49,17 +49,17 @@ tornadoplot <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
     grouping_col_plb <- c("#cbc0d3")
     legend_col <- c("grey80")
   }
-  if (length(unique_grp) - 1 == 2) {
+  if (length(unique_grp)-1 == 2) {
     grouping_col_trt <- c("#D0F1BF", "#97C684")
     grouping_col_plb <- c("#cbc0d3", "#8e9aaf")
     legend_col <- c("grey55", "grey80")
   }
-  if (length(unique_grp) - 1 == 3) {
+  if (length(unique_grp)-1 == 3) {
     grouping_col_trt <- c("#D0F1BF", "#97C684", "#497135")
     grouping_col_plb <- c("#cbc0d3", "#8e9aaf", "#444E5F")
     legend_col <- c("grey30", "grey55", "grey80")
   }
-  if (length(unique_grp) - 1 > 3) {
+  if (length(unique_grp)-1 > 3) {
     print( "Only 3 colors has been defined, update the app")
   }
 
@@ -216,14 +216,13 @@ tornadoplot <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
   # Combine both ggplot elements into the same graphic
   final <- placebo_plot + treatment_plot + patchwork::plot_layout(widths = c(1,1)) +
     patchwork::plot_annotation(
-      caption = "(CDISC Pilot data)",
+      caption = "",
       theme = ggplot2::theme(panel.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
                     plot.background = ggplot2::element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
                     plot.caption = ggplot2::element_text(hjust = 0.005, size = 8, face= "italic"),
                     plot.caption.position =  "plot",
                     plot.margin = ggplot2::margin(20, 25, 20, 25))
     )
-
 
 
   # Add subtitle inside the plot
@@ -241,10 +240,10 @@ tornadoplot <- function(data, settings, groupvar = "None", ref_arm, comp_arm){
       data = tibble::tibble(
         x = 2.8,
         y = -80,
-        label = paste0("The **bars** indicate the frequency of adverse events for <b style='color:#444E5F'>",paste({{ ref_arm }}, collapse = " + "),"</b>
-     and <b style='color:#497135'>",paste({{ comp_arm }}, collapse = " + "), " </b>. Only AEs with at least 1% occurence are presented.<br>
-    The **arrows** show the difference of percentage between both groups. Arrows pointing to the right indicate a positive difference in favor of ", paste({{ ref_arm }}, collapse = " + "),
-    " while arrows pointing to the left indicate a higher frequency of AEs in ",paste({{ ref_arm }}, collapse = " + "), " than ", paste({{ comp_arm }}, collapse = " + "),".")),
+        label = paste0("The **bars** indicate the frequency of adverse events for <b style='color:#444E5F'>",paste0({{ ref_arm }}, collapse = " + "),"</b>
+     and <b style='color:#497135'>",paste0({{ comp_arm }}, collapse = " + "), " </b>. <br>
+    The **arrows** show the difference of percentage between both groups. Arrows pointing to the right indicate a positive difference in favor of <b style='color:#444E5F'>", paste({{ ref_arm }}, collapse = " + "), "</b>",
+    " while arrows pointing to the left indicate a higher frequency of AEs in <b style='color:#444E5F'>",paste0({{ ref_arm }}, collapse = " + "), "</b> than <b style='color:#497135'>", paste0({{ comp_arm }}, collapse = " + "),"</b>.")),
       aes(
         x = x,
         y = y,
